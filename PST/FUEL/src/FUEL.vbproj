@@ -1,0 +1,137 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <Import Project="$(MSBuildBinPath)\Microsoft.VisualBasic.targets" />
+  <PropertyGroup>
+    <ProjectType>local</ProjectType>
+    <ProjectVersion>7.10.377</ProjectVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{451A5AB5-4C7F-424F-B363-686AEB3242FE}</ProjectGuid>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <AssemblyName>FUEL</AssemblyName>
+    <OutputType>Library</OutputType>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
+    <PlatformTarget>x86</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineDebug>true</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
+    <PlatformTarget>x86</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineTrace>true</DefineTrace>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.VisualBasic" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="Microsoft.Office.Interop.Excel" />
+    <Reference Include="System.Windows.Forms.DataVisualization" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="NationalInstruments.DAQmx" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System" />
+    <Reference Include="DevComponents.DotNetBar2" />
+    <Reference Include="System.Data" />
+    <Reference Include="DevComponents.DotNetBar.SuperGrid" />
+    <Reference Include="DevComponents.Instrumentation" />
+    <Reference Include="Ionic.Zip" />
+    <Reference Include="System.Core" />
+    <Reference Include="RDL" />
+    <Reference Include="MessagingToolkit.QRCode" />
+    <Reference Include="DataMatrix.net" />
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.Deployment" />
+    <Compile Include="Global.vb" />
+    <Compile Include="FUEL\My\MyApplication.vb" />
+    <Compile Include="FUEL\My\MyComputer.vb" />
+    <Compile Include="FUEL\My\MyProject.vb" />
+    <Compile Include="FUEL\ExcelHandler.vb" />
+    <Compile Include="FUEL\BigRed\TestVariables.vb" />
+    <Compile Include="FUEL\BigRed\TestSuite.vb" />
+    <Compile Include="FUEL\ChartUtilities.vb" />
+    <Compile Include="FUEL\CheckForUpdates.vb" />
+    <Compile Include="FUEL\DAQ.vb" />
+    <Compile Include="FUEL\DataLogger.vb" />
+    <Compile Include="FUEL\FS\FilePurpose.vb" />
+    <Compile Include="FUEL\FS\MediaSize.vb" />
+    <Compile Include="FUEL\FS\FileSystem.vb" />
+    <Compile Include="FUEL\FS\FileProcessing.vb" />
+    <Compile Include="FUEL\FS\Math.vb" />
+    <Compile Include="FUEL\FS\Misc.vb" />
+    <Compile Include="FUEL\FS\FileUpload.vb" />
+    <Compile Include="FUEL\FSDialog.vb" />
+    <Compile Include="FUEL\FailedChecks.vb" />
+    <Compile Include="FUEL\TestComplete.vb" />
+    <Compile Include="FUEL\ExceptionHandling.vb" />
+    <Compile Include="FUEL\SysEventLog.vb" />
+    <Compile Include="FUEL\FUELLog.vb" />
+    <Compile Include="FUEL\Mechchecks.vb" />
+    <Compile Include="FUEL\PST.vb" />
+    <Compile Include="FUEL\Specifications.vb" />
+    <Compile Include="FUEL\TraceData.vb" />
+    <Compile Include="FUEL\WindowWrapper.vb" />
+    <Compile Include="FUEL\clsCreateKey.vb" />
+    <Compile Include="FUEL\clsSecureScriptKey.vb" />
+    <Compile Include="FUEL\clsSecurePropertyKey.vb" />
+    <Compile Include="FUEL\Simple3Des.vb" />
+    <Compile Include="FUEL\SpecFile.vb" />
+    <Compile Include="FUEL\TestSpecs.vb" />
+    <Compile Include="FUEL\Serializer.vb" />
+    <Compile Include="FUEL\UploadSettings.vb" />
+    <Compile Include="FUEL\clsUploadSettings2.vb" />
+    <Compile Include="FUEL\SettingsSerializer.vb" />
+    <Compile Include="FUEL\ctrlComposite.vb" />
+    <Compile Include="FUEL\ctrlDataGrid.vb" />
+    <Compile Include="FUEL\ctrlMechChecks.vb" />
+    <Compile Include="FUEL\ctrlRegularCharts.vb" />
+    <Compile Include="FUEL\ctrlRunCharts.vb" />
+    <Compile Include="FUEL\ctrlTriage.vb" />
+    <Compile Include="FUEL\ctrlUploadFiles.vb" />
+    <Compile Include="FUEL\ctrlUserLocation.vb" />
+    <Compile Include="FUEL\dlgCriticalCheckFailed.vb" />
+    <Compile Include="FUEL\dlgPSTResults.vb" />
+    <Compile Include="FUEL\dlgSetUserLocation.vb" />
+    <Compile Include="FUEL\dlgTestComplete.vb" />
+    <Compile Include="FUEL\dlgTestStationType.vb" />
+    <Compile Include="FUEL\frmAutoUpload.vb" />
+    <Compile Include="FUEL\frmMechChecks.vb" />
+    <Compile Include="FUEL\frmZipProgress.vb" />
+    <Compile Include="FUEL\modCheckForUpdates.vb" />
+    <Compile Include="FUEL\modCommonCode.vb" />
+    <Compile Include="FUEL\Logging.vb" />
+    <Compile Include="FUEL\My\Resources\Resources.vb" />
+    <Compile Include="FUEL\My\MySettings.vb" />
+    <EmbeddedResource Include="FUEL.frmZipProgress.resources" />
+    <EmbeddedResource Include="FUEL.ctrlMechChecks.resources" />
+    <EmbeddedResource Include="FUEL.ctrlTriage.resources" />
+    <EmbeddedResource Include="FUEL.dlgPSTResults.resources" />
+    <EmbeddedResource Include="FUEL.ctrlUserLocation.resources" />
+    <EmbeddedResource Include="FUEL.ctrlDataGrid.resources" />
+    <EmbeddedResource Include="FUEL.Resources.resources" />
+    <EmbeddedResource Include="FUEL.dlgTestComplete.resources" />
+    <EmbeddedResource Include="FUEL.dlgSetUserLocation.resources" />
+    <EmbeddedResource Include="FUEL.ctrlUploadFiles.resources" />
+    <EmbeddedResource Include="FUEL.dlgTestStationType.resources" />
+    <EmbeddedResource Include="FUEL.dlgCriticalCheckFailed.resources" />
+    <EmbeddedResource Include="FUEL.ctrlComposite.resources" />
+    <EmbeddedResource Include="FUEL.frmAutoUpload.resources" />
+    <EmbeddedResource Include="FUEL.ctrlRegularCharts.resources" />
+    <EmbeddedResource Include="FUEL.frmMechChecks.resources" />
+    <EmbeddedResource Include="FUEL.ctrlRunCharts.resources" />
+  </ItemGroup>
+</Project>

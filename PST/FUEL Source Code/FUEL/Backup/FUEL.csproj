@@ -1,0 +1,157 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="3.5" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!--Project was exported from assembly: C:\hp\FUEL\FUEL.dll-->
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{574CAFA0-F810-42D1-9123-6ED6029DDB7A}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AssemblyName>FUEL</AssemblyName>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <ApplicationVersion>2.4.8.0</ApplicationVersion>
+    <FileAlignment>512</FileAlignment>
+    <RootNamespace>FUEL</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="DataMatrix.net">
+      <HintPath>lib\DataMatrix.net.dll</HintPath>
+    </Reference>
+    <Reference Include="DevComponents.DotNetBar.SuperGrid">
+      <HintPath>lib\DevComponents.DotNetBar.SuperGrid.dll</HintPath>
+    </Reference>
+    <Reference Include="DevComponents.DotNetBar2">
+      <HintPath>lib\DevComponents.DotNetBar2.dll</HintPath>
+    </Reference>
+    <Reference Include="DevComponents.Instrumentation">
+      <HintPath>lib\DevComponents.Instrumentation.dll</HintPath>
+    </Reference>
+    <Reference Include="Ionic.Zip">
+      <HintPath>lib\Ionic.Zip.dll</HintPath>
+    </Reference>
+    <Reference Include="MessagingToolkit.QRCode">
+      <HintPath>lib\MessagingToolkit.QRCode.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Office.Interop.Excel" />
+    <Reference Include="Microsoft.VisualBasic" />
+    <Reference Include="NationalInstruments.DAQmx">
+      <HintPath>lib\NationalInstruments.DAQmx.dll</HintPath>
+    </Reference>
+    <Reference Include="RDL">
+      <HintPath>lib\RDL.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Deployment" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Windows.Forms.DataVisualization" />
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Xml.Linq" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="ExcelHandler.cs" />
+    <Compile Include="ChartUtilities.cs" />
+    <Compile Include="CheckForUpdates.cs" />
+    <Compile Include="DAQ.cs" />
+    <Compile Include="DataLogger.cs" />
+    <Compile Include="FSDialog.cs" />
+    <Compile Include="FailedChecks.cs" />
+    <Compile Include="TestComplete.cs" />
+    <Compile Include="ExceptionHandling.cs" />
+    <Compile Include="SysEventLog.cs" />
+    <Compile Include="FUELLog.cs" />
+    <Compile Include="Mechchecks.cs" />
+    <Compile Include="PST.cs" />
+    <Compile Include="Specifications.cs" />
+    <Compile Include="TraceData.cs" />
+    <Compile Include="WindowWrapper.cs" />
+    <Compile Include="clsCreateKey.cs" />
+    <Compile Include="clsSecureScriptKey.cs" />
+    <Compile Include="clsSecurePropertyKey.cs" />
+    <Compile Include="Simple3Des.cs" />
+    <Compile Include="SpecFile.cs" />
+    <Compile Include="TestSpecs.cs" />
+    <Compile Include="Serializer.cs" />
+    <Compile Include="UploadSettings.cs" />
+    <Compile Include="clsUploadSettings2.cs" />
+    <Compile Include="SettingsSerializer.cs" />
+    <Compile Include="ctrlComposite.cs" />
+    <Compile Include="ctrlDataGrid.cs" />
+    <Compile Include="ctrlMechChecks.cs" />
+    <Compile Include="ctrlRegularCharts.cs" />
+    <Compile Include="ctrlRunCharts.cs" />
+    <Compile Include="ctrlTriage.cs" />
+    <Compile Include="ctrlUploadFiles.cs" />
+    <Compile Include="ctrlUserLocation.cs" />
+    <Compile Include="dlgCriticalCheckFailed.cs" />
+    <Compile Include="dlgPSTResults.cs" />
+    <Compile Include="dlgSetUserLocation.cs" />
+    <Compile Include="dlgTestComplete.cs" />
+    <Compile Include="dlgTestStationType.cs" />
+    <Compile Include="frmAutoUpload.cs" />
+    <Compile Include="frmMechChecks.cs" />
+    <Compile Include="frmZipProgress.cs" />
+    <Compile Include="modCheckForUpdates.cs" />
+    <Compile Include="modCommonCode.cs" />
+    <Compile Include="Logging.cs" />
+    <Compile Include="My\MyApplication.cs" />
+    <Compile Include="My\MyComputer.cs" />
+    <Compile Include="My\MyProject.cs" />
+    <Compile Include="My\InternalXmlHelper.cs" />
+    <Compile Include="My\MySettings.cs" />
+    <Compile Include="My\MySettingsProperty.cs" />
+    <Compile Include="My\Resources\Resources.cs" />
+    <Compile Include="BigRed\TestVariables.cs" />
+    <Compile Include="BigRed\TestSuite.cs" />
+    <Compile Include="FS\FilePurpose.cs" />
+    <Compile Include="FS\MediaSize.cs" />
+    <Compile Include="FS\FileSystem.cs" />
+    <Compile Include="FS\FileProcessing.cs" />
+    <Compile Include="FS\Math.cs" />
+    <Compile Include="FS\Misc.cs" />
+    <Compile Include="FS\FileUpload.cs" />
+    <Compile Include="AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="ctrlComposite.resx" />
+    <EmbeddedResource Include="ctrlDataGrid.resx" />
+    <EmbeddedResource Include="ctrlMechChecks.resx" />
+    <EmbeddedResource Include="ctrlRegularCharts.resx" />
+    <EmbeddedResource Include="ctrlRunCharts.resx" />
+    <EmbeddedResource Include="ctrlTriage.resx" />
+    <EmbeddedResource Include="ctrlUploadFiles.resx" />
+    <EmbeddedResource Include="ctrlUserLocation.resx" />
+    <EmbeddedResource Include="dlgCriticalCheckFailed.resx" />
+    <EmbeddedResource Include="dlgPSTResults.resx" />
+    <EmbeddedResource Include="dlgSetUserLocation.resx" />
+    <EmbeddedResource Include="dlgTestComplete.resx" />
+    <EmbeddedResource Include="dlgTestStationType.resx" />
+    <EmbeddedResource Include="frmAutoUpload.resx" />
+    <EmbeddedResource Include="frmMechChecks.resx" />
+    <EmbeddedResource Include="frmZipProgress.resx" />
+    <EmbeddedResource Include="Resources.resx" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
