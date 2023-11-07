@@ -17,7 +17,7 @@ if len(sys.argv) > 1:                    #From CIMation, argv[1] = sourceDirecto
     project_path = str(sys.argv[1])      #assign argv value into project_path    
 else:
     #light up a button that prompts user to select a sourceDirectory and a destinationDirectory 
-    project_path = r'C:\Users\ThKy029\OneDrive - HP Inc\Python\Image'
+    project_path = r'C:\Program Files (x86)\CIMProjects.Net\Marconi\Marconi Result Sample'
 
 #data to input to log file
 test_info = {'test_result':0,'PVT_status':1,'sampling_rate':1000,'serial_number':'TH36936123085Z'}
