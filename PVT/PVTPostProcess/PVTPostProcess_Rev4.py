@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter.filedialog import askopenfilename,asksaveasfilename
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,NavigationToolbar2Tk)
 import numpy as np
@@ -11,8 +12,12 @@ import os
 from itertools import islice
 import sys
 
-#input values
-project_path = r'C:\Users\ThKy029\HP Inc\CIMation Pals - Documents\General\PVT\Marconi Result Sample'
+#check if path variable is available from CIMation
+if len(sys.argv) > 1:                    #From CIMation, argv[1] = sourceDirectory, argv[2] = destinationDirectory    
+    project_path = str(sys.argv[1])      #assign argv value into project_path    
+else:
+    #light up a button that prompts user to select a sourceDirectory and a destinationDirectory 
+    project_path = r'C:\Users\ThKy029\OneDrive - HP Inc\Python\Image'
 
 #data to input to log file
 test_info = {'test_result':0,'PVT_status':1,'sampling_rate':1000,'serial_number':'TH36936123085Z'}
@@ -35,13 +40,6 @@ root.title("PVT Test")
 root.geometry("900x750") 
 #fix window drag size
 root.resizable(False,False)
-
-#From CIMation, argv[1] = sourceDirectory, argv[2] = destinationDirectory
-if len(sys.argv) > 1:    
-    project_path = sys.argv[1]   #assign argv value into project_path
-    # convert project_path to a string
-    project_path = str(project_path)
-
 
 def exit_button_press():
     root.destroy()
@@ -203,7 +201,6 @@ def dropdown_menu(select,options_input,frm_selection,row_index,callback_function
     dropdown_channel.grid(row=row_index,column=0,sticky="nw")
     dropdown_channel.config(font=(11),width=9)
 
-from tkinter.filedialog import askopenfilename,asksaveasfilename
 def open_file():
     filepath = askopenfilename(filetypes=[("Text Files","*.txt"),("All Files","*.*")]) 
     if not filepath:

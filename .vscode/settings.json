@@ -1,0 +1,4 @@
+{
+    "dotnet.defaultSolution": "disable",
+    "svn.ignoreMissingSvnWarning": true
+}
