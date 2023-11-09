@@ -11,13 +11,6 @@ import os
 from itertools import islice
 import sys
 
-#check if path variable is available from CIMation
-if len(sys.argv) > 1:                    #From CIMation, argv[1] = sourceDirectory, argv[2] = destinationDirectory    
-    project_path = str(sys.argv[1])      #assign argv value into project_path    
-else:
-    #light up a button that prompts user to select a sourceDirectory and a destinationDirectory 
-    project_path = r'C:\Program Files (x86)\CIMProjects.Net\Marconi\Marconi Result Sample'
-
 #data to input to log file
 test_info = {'test_result':0,'PVT_status':1,'sampling_rate':1000,'serial_number':'TH36936123085Z'}
 max_pressures = {'maxP_magenta':98.51,'maxP_cyan':98.26,'maxP_yellow':98.54,'maxP_black':98.33,'maxP_within_range':1}
