@@ -11,13 +11,16 @@ import os
 from itertools import islice
 import sys
 
+#initialize empty dictionary test_result
+test_result = {}
+
 #data to input to log file
-test_info = {'test_result':0,'PVT_status':1,'sampling_rate':1000,'serial_number':'TH36936123085Z'}
-max_pressures = {'maxP_magenta':98.51,'maxP_cyan':98.26,'maxP_yellow':98.54,'maxP_black':98.33,'maxP_within_range':1}
-pressure_test_result = {'Vent Delay':20,'Vent Rate':1500,'Vent Delay Result':1,'Vent Rate Result':0}
-pressure_test_limits = {'Vent Delay UL':50,'Vent Delay LL':-75,'Vent Rate UL':1434,'Vent Rate LL':784}
-decay_test_result = {'Decay':-0.5,'Vent Rate':500,'Decay Result':1,'Vent Rate Result':1}
-decay_test_limits = {'Decay UL':0,'Decay LL':-5.57,'Vent Rate UL':1000,'Vent Rate LL':200}
+# test_result = {'test_result':0,'PVT_status':0,'sampling_rate':1000,'serial_number':'TH36936123085Z', \
+#                'maxP_magenta':98.51,'maxP_cyan':98.26,'maxP_yellow':98.54,'maxP_black':98.33,'maxP_within_range':1, \
+#                'pressure_vent_delay':20,'pressure_vent_rate':1500,'pressure_vent_delay_result':1,'pressure_vent_rate_result':0, \
+#                'pressure_vent_delay_UL':50,'pressure_vent_delay_LL':-75,'pressure_vent_rate_UL':1434,'pressure_vent_rate_LL':784, \
+#                'decay_rate':-0.5,'decay_vent_rate':500,'decay_rate_result':1,'decay_vent_rate_result':1, \
+#                'decay_UL':0,'decay_LL':-5.57,'decay_vent_rate_UL':1000,'decay_vent_rate_LL':200}
 
 #Global variables
 TEST_TYPE = 'pressure'
@@ -25,6 +28,7 @@ CHANNEL = 'all'
 CHANNEL_NAMES = ["magenta", "cyan","yellow","k (black)"]
 source_path = ""
 destination_path = ""
+log_file = ""
 
 #main window 
 root = tk.Tk()
@@ -33,15 +37,8 @@ root.title("PVT Test")
 root.geometry("900x750") 
 #fix window drag size
 #root.resizable(False,False)
-#hide the root window under pop up window is closed
-root.withdraw()
-
-#pop up window to prompt user to select source and destination directory
-prompt_window = tk.Toplevel(root)
-prompt_window.title("Select Project Directory")
-#set window size
-prompt_window.geometry("900x250")
-   
+#hide the root window until pop up window is closed
+root.withdraw()   
 
 def add_scrollbar(parent,text_widget,row,column):
     #add scrollbar to the text widget
@@ -56,48 +53,43 @@ def select_directory(txt_output,type="source"):
     txt_output.xview_moveto(1)  #move the cursor to the end of the text widget, not working!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 def prompt_user_for_directory():
-    global txt_source,txt_destination
+    global txt_source
+    #pop up window to prompt user to select source directory
+    prompt_window = tk.Toplevel(root)
+    prompt_window.grab_set()    #make the prompt_window modal, disable the root window
+    prompt_window.title("Select Project Directory")
+    #set window size
+    prompt_window.geometry("900x180")    
     #create a frame to hold the prompt widgets
     frm_prompt = tk.Frame(master=prompt_window,borderwidth=2)  #relief=tk.RAISED
     txt_source = tk.Text(frm_prompt,height=1,width=60,font=(7))
-    txt_destination = tk.Text(frm_prompt,height=1,width=60,font=(7), wrap=tk.WORD) 
     btn_select_source = tk.Button(frm_prompt,width=17,font=(1),text="Select Source Dir",command=lambda:select_directory(txt_source,"source"))
-    btn_select_destination = tk.Button(frm_prompt,width=17,font=(1),text="Select Destination Dir",command=lambda:select_directory(txt_destination,"destination"))
-    btn_close = tk.Button(frm_prompt,height=2,width=8,font=(12),text="Next",command=lambda:on_close(txt_source,txt_destination))
+    btn_next = tk.Button(frm_prompt,height=2,width=8,font=(12),text="Next",command=lambda:on_close(prompt_window,txt_source))
+    btn_cancel = tk.Button(frm_prompt,height=2,width=8,font=(12),text="Cancel",command=lambda:on_cancel(prompt_window))
 
     btn_select_source.grid(row=0,column=0,sticky="w",padx=5,pady=5)
-    txt_source.grid(row=0,column=1,sticky="nw",padx=5,pady=5)
-    btn_select_destination.grid(row=1,column=0,sticky="nw",padx=5,pady=5)
-    txt_destination.grid(row=1,column=1,sticky="w",padx=5,pady=5)
-    btn_close.grid(row=2,column=1,sticky="e",padx=5,pady=5)
+    txt_source.grid(row=0,column=1,sticky="nw",padx=5,pady=5,columnspan=2)
+    btn_next.grid(row=2,column=2,sticky="e",padx=5,pady=5)
+    if source_path != "":
+        btn_cancel.grid(row=2,column=1,sticky="e",padx=5,pady=5)
     frm_prompt.grid(row=0,column=0,sticky="nw",rowspan=5)
+    frm_prompt.columnconfigure(1,minsize=20,weight=1)
     #call on_close function when the window is closed
-    prompt_window.protocol("WM_DELETE_WINDOW",lambda:on_close(txt_source,txt_destination))    
+    prompt_window.protocol("WM_DELETE_WINDOW",lambda:on_close(txt_source))    
 
-def on_close(txt_source,txt_destination):
-    global source_path,destination_path
+def on_cancel(window):
+    window.destroy()
+    root.deiconify()   #show the root window
+def on_close(window,txt_source):
+    global source_path
     source_path = txt_source.get("1.0",tk.END).strip().replace('/','\\')
-    destination_path = txt_destination.get("1.0",tk.END).strip().replace('/','\\')
     print(f"source_path: {source_path}")
-    print(f"destination_path: {destination_path}")
     if not os.path.isdir(source_path):
         messagebox.showerror("Error", "Source Directory does not exist")
-        prompt_user_for_directory()
-    elif not os.path.isdir(destination_path):
-        messagebox.showerror("Error", "Destination Directory does not exist")
-        prompt_user_for_directory()
     else:
         root.deiconify()   #show the root window
-        prompt_window.destroy()   #destroy the pop up window
+        window.destroy()   #destroy the pop up window
         main_GUI()
-
-# def close_button_press():
-#     window.destroy()
-#     root.deiconify()   #show the root window
-
-    #add scrollbar to the text widgets
-    # add_scrollbar(frm_prompt,txt_source,0,1)
-    # add_scrollbar(frm_prompt,txt_destination,1,1)
 
 def exit_button_press():
     root.destroy()
@@ -108,14 +100,22 @@ def plot(test_type=TEST_TYPE,channel = CHANNEL):
         log_file = obtain_latest_file('pressure')
     else:
         log_file = obtain_latest_file('decay')
+
     #load the log file
-    data = np.loadtxt(log_file,skiprows=3,dtype=float,delimiter=',')
+    data = np.loadtxt(log_file,skiprows=28,dtype=float,delimiter=',')
     #data = pd.read_csv(log_file, delimiter=',', skiprows=3, header=None)
 
     # Get channel names from Row 3 of log file
     with open(log_file, 'r') as file:
-        channel_names_raw = file.readlines()[2].strip()
-   
+        lines = file.readlines()
+        channel_names_raw = lines[27].strip()
+        #loop through log_file row 1 to row 27 and assign the values into test_result dictionary, text before : is key and text after : is value
+        for i in range(27):
+            line = lines[i].strip()
+            key = line.split(':')[0].strip()
+            value = line.split(':')[1].strip()
+            test_result[key] = value
+
     CHANNEL_NAMES = (str(channel_names_raw.split(':')[1]).strip().lower()).split(',') 
     
     #plot the data
@@ -237,6 +237,7 @@ def open_file():
         #txt_editor.insert(tk.END,text)
     root.title(f"Simple Text Editor - {filepath}")
     '''
+
 def save_file(lbl_SN):
     filepath = asksaveasfilename(defaultextension=".txt",filetypes=[("Text Files","*.txt"),("All Files","*.*")])
     if not filepath:
@@ -247,6 +248,16 @@ def save_file(lbl_SN):
         text = lbl_SN.cget("text")
         output_file.write(text)
     root.title(f"Simple Text Editor - {filepath}")
+
+def setup():
+    #pop up window or message box to ask user to enter serial number
+    serial_number = "TH36936123085Z"
+    #only show files that start with serial_number
+
+    filepath = askopenfilename(filetypes=[("Text Files","*.log"),("All Files","*.*")]) 
+    if not filepath:
+        return
+
 
 #configure the grid
 def configure_grid(widget):
@@ -259,8 +270,9 @@ def configure_grid(widget):
     # If the widget is a frame, also configure its children
     if isinstance(widget, tk.Frame):
         for child in widget.winfo_children():
-            rows, columns = child.grid_size()
-            configure_grid(child)
+            child.grid(sticky='nsew')
+            # rows, columns = child.grid_size()
+            # configure_grid(child)
 
 #configure_grid(root)
 # root.columnconfigure(0,minsize=20,weight=1)   #changing the minsize does not change anyth
@@ -271,32 +283,27 @@ def configure_grid(widget):
 # root.rowconfigure(2,minsize=20,weight=1)
 
 def main_GUI():
+    #plot the graph, default is decay test
+    plot("decay")     
     ########################## Left ToolBar ##########################
     frm_left_bar = tk.Frame(master=root,borderwidth=2,relief=tk.RAISED)
 
-    if test_info['PVT_status']:
-        display_text = "Ready"
-        background = "light green"
-    else:
-        display_text = "Not Connected"
-        background = "light coral"
-
-    lbl_status = tk.Label(frm_left_bar,height=4,width=8,font=(20),text=display_text,bg = background)
-    btn_save = tk.Button(frm_left_bar,height=4,width=8,font=(10),text="Save",command=lambda:save_file(lbl_SN))
-    btn_plot = tk.Button(frm_left_bar,height=4,width=8,font=(12),text="Plot") 
+    btn_open = tk.Button(frm_left_bar,height=4,width=8,font=(10),text="Open File",command=prompt_user_for_directory)
+    btn_setup = tk.Button(frm_left_bar,height=4,width=8,font=(12),text="SetUp",command=setup)
     btn_exit = tk.Button(frm_left_bar,height=4,width=8,font=(12),text="Exit",bg = "light coral",command=exit_button_press)
 
-    lbl_status.grid(row=1,column=0,sticky="ew",padx=5,pady=5)
-    btn_save.grid(row=2,column=0,sticky="ew",padx=5)
-    btn_plot.grid(row=3,column=0,sticky="ew",padx=5)
+    btn_open.grid(row=1,column=0,sticky="ew",padx=5)
+    btn_setup.grid(row=2,column=0,sticky="ew",padx=5)
+    tk.Label(frm_left_bar,height=15).grid(row=3,column=0)  # Empty label with desired height
     btn_exit.grid(row=4,column=0,sticky="nw",padx=5)
     frm_left_bar.grid(row=1,column=0,sticky="nw",rowspan=5)
+
     ######################### Top Test Info ##########################
     frm_labels = tk.Frame(master=root,borderwidth=2)
-    lbl_SN = tk.Label(master=frm_labels,text=f"Serial No: {test_info['serial_number']}",height= 2, font= 11)
-    lbl_sampling_rate = tk.Label(master=frm_labels,text=f"Sampling Rate: {test_info['sampling_rate']}",height= 2, font= 11)
+    lbl_SN = tk.Label(master=frm_labels,text=f"Serial No: {test_result['serial_number']}",height= 2, font= 11)
+    lbl_sampling_rate = tk.Label(master=frm_labels,text=f"Sampling Rate: {test_result['sampling_rate']}",height= 2, font= 11)
 
-    if test_info['test_result']:
+    if test_result['test_result']:
         lbl_test_result = tk.Label(master=frm_labels,text="Pass",bg = "light green", height= 2, width= 9, font= 11)
     else:
         lbl_test_result = tk.Label(master=frm_labels,text="Fail",bg = "light coral", height= 2, width= 9, font= 11)
@@ -309,8 +316,8 @@ def main_GUI():
     lbl_sampling_rate.grid(row=0,column=2,**paddings)
     frm_labels.grid(row=0,column=1,sticky="nw",columnspan=2)
 
-    #plot the graph, default is decay test
-    plot("decay") 
+    # #plot the graph, default is decay test
+    # plot("decay") 
 
     ########################## Right Filter ##########################
     frm_selection = tk.Frame(master=root,borderwidth=2)
@@ -348,7 +355,7 @@ def main_GUI():
 
     # test result for max pressures
     index = 1
-    for key,value in islice(max_pressures.items(),4):
+    for key,value in islice(test_result.items(),6,10):
         #lbl_max_pressure = tk.Label(master=frm_max_pressures,text=f"{CHANNEL_NAMES[max_pressures.index(channel)].capitalize()}:", font= 9)
         lbl_max_pressure = tk.Label(master=frm_max_pressures,text= key.split('_')[1].capitalize(), font= 9)
         lbl_max_pressure_value = tk.Label(master=frm_max_pressures,text=f"{value}", font= 9,bg="white")
@@ -356,7 +363,7 @@ def main_GUI():
         lbl_max_pressure_value.grid(row=index,column=1,sticky="nw",pady=5)
         index += 1
 
-    maxP_within_range = max_pressures['maxP_within_range']
+    maxP_within_range = test_result['maxP_within_range']
     if maxP_within_range:
         lbl_max_pressure_result = tk.Label(master=frm_max_pressures,text="Pass",bg = "light green", width= 15, font= 9)
     else:
@@ -365,10 +372,11 @@ def main_GUI():
 
     # test result for Pressure Test
     row_increment = 0
-    for key,value in islice(pressure_test_result.items(),2):
-        background = "light green" if pressure_test_result[key+' Result'] == 1 else "light coral"
-        lbl_pressure_test = tk.Label(master=frm_pressure_test_result,text=f"{key}", width= 15, font= 9)
-        lbl_pressure_test_limit = tk.Label(master=frm_pressure_test_result,text=f"UL: {pressure_test_limits[key+' UL']}  LL: {pressure_test_limits[key+' LL']}", fg="grey", width= 15, font=(None, 12))
+    for key,value in islice(test_result.items(),11,13):
+        background = "light green" if test_result[key+'_result'] == 1 else "light coral"
+        #extract the string vent_delay or vent_rate from the key
+        lbl_pressure_test = tk.Label(master=frm_pressure_test_result, text=f"{key.split('pressure_')[1].replace('_', ' ').title()}", width= 15, font= 9)
+        lbl_pressure_test_limit = tk.Label(master=frm_pressure_test_result,text=f"UL: {test_result[key+'_UL']}  LL: {test_result[key+'_LL']}", fg="grey", width= 15, font=(None, 12))
         lbl_pressure_test_result = tk.Label(master=frm_pressure_test_result,text=f"{value}",bg = background, width= 15, font= 9)
         lbl_pressure_test.grid(row=2+row_increment,column=0,sticky="nw",padx=5,pady=3) 
         lbl_pressure_test_limit.grid(row=3+row_increment,column=0,sticky="nw",padx=5,pady=3)
@@ -377,10 +385,10 @@ def main_GUI():
 
     # test result for Decay Test
     row_increment = 0
-    for key,value in islice(decay_test_result.items(),2):
-        background = "light green" if decay_test_result[key+' Result'] == 1 else "light coral"
-        lbl_decay_test = tk.Label(master=frm_decay_test_result,text=f"{key}", width= 15, font= 9)
-        lbl_decay_test_limit = tk.Label(master=frm_decay_test_result,text=f"UL: {decay_test_limits[key+' UL']}  LL: {decay_test_limits[key+' LL']}", width= 15, font= (None, 12), fg="grey")
+    for key,value in islice(test_result.items(),19,21):
+        background = "light green" if test_result[key+'_result'] == 1 else "light coral"
+        lbl_decay_test = tk.Label(master=frm_decay_test_result,text = "Decay Rate" if key == 'decay_rate' else "Vent Rate", width= 15, font= 9)
+        lbl_decay_test_limit = tk.Label(master=frm_decay_test_result,text=f"UL: {test_result[key+'_UL']}  LL: {test_result[key+'_LL']}", width= 15, font= (None, 12), fg="grey")
         lbl_decay_test_result = tk.Label(master=frm_decay_test_result,text=f"{value}",bg = background, width= 15, font= 9)
         lbl_decay_test.grid(row=2+row_increment,column=0,sticky="nw",padx=5,pady=3)
         lbl_decay_test_limit.grid(row=3+row_increment,column=0,sticky="nw",padx=5,pady=3)
@@ -398,22 +406,16 @@ def main_GUI():
     ##################################################################
 
 if __name__ == "__main__":
-
     #'''
     #check if path variable is available from CIMation
     if len(sys.argv) > 1:                    #From CIMation, argv[1] = sourceDirectory, argv[2] = destinationDirectory    
         source_path = str(sys.argv[1]).strip().replace('/','\\')      #assign argv[1] value into source_path  
-        destination_path = str(sys.argv[2]).strip().replace('/','\\') #assign argv[2] value into destination_path  
-        print("source_path: ",source_path,"\ndestination_path: ",destination_path)
-        prompt_window.destroy()   #destroy the pop up window
+        #destination_path = str(sys.argv[2]).strip().replace('/','\\') #assign argv[2] value into destination_path  
+        print("source_path: ",source_path)
         root.deiconify()   #show the root window
         main_GUI()
     else:
-        #light up a button that prompts user to select a sourceDirectory and a destinationDirectory 
-        #source_path = r'C:\\Users\\ThKy029\HP Inc\\CIMation Pals - Documents\\General\\3) PVT\\Marconi Result Sample'
-        # tk message box to prompt use to select directory
-        # messagebox.showinfo("Select Project Directory", "Please select your project directory")
-        # source_path = filedialog.askdirectory(title="Select Project Directory")
+        #light up a button that prompts user to select a sourceDirectory
         prompt_user_for_directory()
     #'''    
     #start the event loop
