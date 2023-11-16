@@ -15,13 +15,16 @@ Imports System.Collections.Generic
 Const RUN_PVT_POST_PROCESS = True
 
 Const PRESSURE_TEST_SAMPLINGHZ = 1000
-Const PRESSURE_TEST_STOP_COMPENSATION_PRESSURE = 80
+
+Const PRESSURE_TEST_NUMBERSAMPLES = 3800    'change from 2500 to 3800 to address low pressure seen in sealed unit
+
+'Const PRESSURE_TEST_STOP_COMPENSATION_PRESSURE = 80
 Const PRESSURE_TEST_MAX_VENT_DELAY = 50
 Const PRESSURE_TEST_MIN_VENT_DELAY = -75
 Const PRESSURE_TEST_MAX_VENTRATE = 1434
 Const PRESSURE_TEST_MIN_VENTRATE = 784
 
-Const DECAY_TEST_MIN_DECAY = 0
+'Const DECAY_TEST_MIN_DECAY = 0
 Const DECAY_TEST_MAX_DECAY = -5.75
 Const DECAY_TEST_MAX_VENTRATE = 1000
 Const DECAY_TEST_MIN_VENTRATE = 200
@@ -180,35 +183,35 @@ Sub LogPressures(Test$, Pressures(,) As Double)
     Dim TestLimits As New Dictionary(Of String, Object)
     'Test Info
     TestLimits.Add("test_results", 0)
-    TestLimits.Add("PVT_status", 1)
     TestLimits.Add("sampling_rate", PRESSURE_TEST_SAMPLINGHZ)
     TestLimits.Add("serial_number", "TH36936123085Z")
+    TestLimits.Add("run_number", RunTime.RunNumber)
     'Max Pressures
-    TestLimits.Add("maxP_magenta", 98.51)
+    TestLimits.Add("maxP_magenta", 98.51)                   'MaxP(COLOR) from Pressure Test
     TestLimits.Add("maxP_cyan", 98.26)
     TestLimits.Add("maxP_yellow", 98.54)
     TestLimits.Add("maxP_black", 98.33)
-    TestLimits.Add("maxP_within_range", 1)
-    'Pressure Test Result
-    TestLimits.Add("Vent Delay", PRESSURE_TEST_STOP_COMPENSATION_PRESSURE)
-    TestLimits.Add("Vent Rate", 1500)
-    TestLimits.Add("Vent Delay Result", 1)
-    TestLimits.Add("Vent Rate Result", 0)
+    TestLimits.Add("maxP_within_range", 1)                  'Check if the MaxP(COLOR) {returned from FindMaxInRange} is < PRESSURE_TEST_MIN_MAX{95} or > PRESSURE_TEST_MAX_MIN{134},set Function to false
+    'Pressure Test Results
+    TestLimits.Add("pressure_vent_delay", PRESSURE_TEST_STOP_COMPENSATION_PRESSURE) 'PressureTestVentDelay(COLOR) = RiseTimes(COLOR)*1000 - PRESSURE_TEST_PUMP_TIME{450} + RISETIME_OFFSET{25}
+    TestLimits.Add("pressure_vent_rate", 1500)              'Decay(COLOR)
+    TestLimits.Add("pressure_vent_delay_result", 1)
+    TestLimits.Add("pressure_vent_rate_result", 0)
     'Pressure Test Limits
-    TestLimits.Add("Vent Delay UL", PRESSURE_TEST_MAX_VENT_DELAY)
-    TestLimits.Add("Vent Delay LL", PRESSURE_TEST_MIN_VENT_DELAY)
-    TestLimits.Add("Vent Rate UL", PRESSURE_TEST_MAX_VENTRATE)
-    TestLimits.Add("Vent Rate LL", PRESSURE_TEST_MIN_VENTRATE)
-    'Decay Test Result
-    TestLimits.Add("Decay Min", DECAY_TEST_MIN_DECAY)
-    TestLimits.Add("Decay Vent Rate", 500)
-    TestLimits.Add("Decay Result", 1)
-    TestLimits.Add("Decay Vent Rate Result", 1)
-    'Decay Test Result
-    TestLimits.Add("Decay UL", DECAY_TEST_MIN_DECAY)
-    TestLimits.Add("Decay LL", DECAY_TEST_MAX_DECAY)
-    TestLimits.Add("Decay Vent Rate UL", DECAY_TEST_MAX_VENTRATE)
-    TestLimits.Add("Decay Vent Rate LL", DECAY_TEST_MIN_VENTRATE)
+    TestLimits.Add("pressure_vent_delay_UL", PRESSURE_TEST_MAX_VENT_DELAY)
+    TestLimits.Add("pressure_vent_delay_LL", PRESSURE_TEST_MIN_VENT_DELAY)
+    TestLimits.Add("pressure_vent_rate_UL", PRESSURE_TEST_MAX_VENTRATE)
+    TestLimits.Add("pressure_vent_rate_LL", PRESSURE_TEST_MIN_VENTRATE)
+    'Decay Test Results
+    TestLimits.Add("decay_rate", DECAY_TEST_MIN_DECAY)      'Decay(COLOR)
+    TestLimits.Add("decay_vent_rate", 500)                  'VentRate(COLOR)
+    TestLimits.Add("decay_result", 1)
+    TestLimits.Add("decay_vent_rate_result", 1)
+    'Decay Test Limits
+    TestLimits.Add("decay_UL", DECAY_TEST_MIN_DECAY)
+    TestLimits.Add("decay_LL", DECAY_TEST_MAX_DECAY)
+    TestLimits.Add("decay_vent_rate_UL", DECAY_TEST_MAX_VENTRATE)
+    TestLimits.Add("decay_vent_rate_LL", DECAY_TEST_MIN_VENTRATE)
 
     Try
         sErrLine = CallersLine(-1)
@@ -226,9 +229,9 @@ Sub LogPressures(Test$, Pressures(,) As Double)
         sErrLine = CallersLine(-1)
         Writer = New System.IO.StreamWriter(SavePath)
         sErrLine = CallersLine(-1)
-        Writer.WriteLine "SamplingHz: " + "100" 'Str(NIDAQ.AISamplingRateHz)
+        Writer.WriteLine "SamplingHz: " + Str(PRESSURE_TEST_SAMPLINGHZ)'Str(NIDAQ.AISamplingRateHz)
         sErrLine = CallersLine(-1)
-        Writer.WriteLine "Number Samples: " + Str(PRESSURE_TEST_SAMPLINGHZ) 'Str(NIDAQ.NumberSamples)
+        Writer.WriteLine "Number Samples: " + Str(PRESSURE_TEST_NUMBERSAMPLES) 'Str(NIDAQ.NumberSamples)
 
         sErrLine = CallersLine(-1)
         For Each kvp As KeyValuePair(Of String, Object) In TestLimits
