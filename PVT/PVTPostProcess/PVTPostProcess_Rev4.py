@@ -29,12 +29,13 @@ CHANNEL_NAMES = ["magenta", "cyan","yellow","k (black)"]
 source_path = ""
 destination_path = ""
 log_file = ""
+serial_numbers_list = ["default"]
 
 #main window 
 root = tk.Tk()
 root.title("PVT Test")
 #set window size
-root.geometry("900x750") 
+root.geometry("920x750") 
 #fix window drag size
 #root.resizable(False,False)
 #hide the root window until pop up window is closed
@@ -89,12 +90,26 @@ def on_close(window,txt_source):
     else:
         root.deiconify()   #show the root window
         window.destroy()   #destroy the pop up window
+        manual_SN_selection() #get the serial numbers from the source_path
         main_GUI()
+        
 
 def exit_button_press():
     root.destroy()
 
+def manual_SN_selection():
+    global serial_numbers_list
+    exists = os.path.exists(source_path)
+    #get all the file names from source_path
+    files = os.listdir(source_path)
+    #filter only .log files
+    files = [file for file in files if file.endswith(".log")]
+    #get the unique serial numbers from the files
+    serial_numbers_list = list(set([file.split('_')[0] for file in files]))
+
+
 def plot(test_type=TEST_TYPE,channel = CHANNEL):
+    global serial_numbers_list,log_file
     #check the log file to load
     if test_type.lower() == 'pressure':
         log_file = obtain_latest_file('pressure')
@@ -115,6 +130,9 @@ def plot(test_type=TEST_TYPE,channel = CHANNEL):
             key = line.split(':')[0].strip()
             value = line.split(':')[1].strip()
             test_result[key] = value
+    if len(sys.argv) > 1: 
+        serial_numbers_list.clear()
+        serial_numbers_list.append(test_result['serial_number'])
 
     CHANNEL_NAMES = (str(channel_names_raw.split(':')[1]).strip().lower()).split(',') 
     
@@ -141,8 +159,8 @@ def plot(test_type=TEST_TYPE,channel = CHANNEL):
         xmax = xpos[0][0]
 
         # Annotate the maximum point
-        # plt.annotate('maxP', xy=(xmax, ymax), xytext=(xmax, ymax+0.05),
-        #             arrowprops=dict(facecolor='black', shrink=0.05))
+        plt.annotate('maxP', xy=(xmax, ymax), xytext=(xmax, ymax+0.05),
+                    arrowprops=dict(facecolor='black', shrink=0.05))
         
         # Annotate the maximum point with label and number
         # plt.annotate(f'maxP: {ymax}', xy=(xmax, ymax), xytext=(xmax, ymax+0.05),
@@ -207,7 +225,9 @@ def obtain_latest_file(test_type):
 # function to be called when an option is selected
 def on_option_selected(*args):  #*args is a tuple, args[0] is the selected_option, args[1] is the selector name
     print(f"The selected option is {args[0].get()}")
-    if args[1] == "Test":
+    if args[1] == "Serial Number":             ########################to delete
+        return
+    elif args[1] == "Test":
         plot(args[0].get(),CHANNEL) 
     else:
         plot(TEST_TYPE,args[0].get())
@@ -224,7 +244,7 @@ def dropdown_menu(select,options_input,frm_selection,row_index,callback_function
     # Create the dropdown
     dropdown_channel = tk.OptionMenu(frm_selection, selected_option, *options)
     dropdown_channel.grid(row=row_index,column=0,sticky="nw")
-    dropdown_channel.config(font=(11),width=9)
+    dropdown_channel.config(font=(11),width=15)
 
 def open_file():
     '''
@@ -288,12 +308,10 @@ def main_GUI():
     ########################## Left ToolBar ##########################
     frm_left_bar = tk.Frame(master=root,borderwidth=2,relief=tk.RAISED)
 
-    btn_open = tk.Button(frm_left_bar,height=4,width=8,font=(10),text="Open File",command=prompt_user_for_directory)
-    btn_setup = tk.Button(frm_left_bar,height=4,width=8,font=(12),text="SetUp",command=setup)
+    btn_setup = tk.Button(frm_left_bar,height=4,width=8,font=(10),text="Set Up",command=prompt_user_for_directory)
     btn_exit = tk.Button(frm_left_bar,height=4,width=8,font=(12),text="Exit",bg = "light coral",command=exit_button_press)
 
-    btn_open.grid(row=1,column=0,sticky="ew",padx=5)
-    btn_setup.grid(row=2,column=0,sticky="ew",padx=5)
+    btn_setup.grid(row=1,column=0,sticky="ew",padx=5)
     tk.Label(frm_left_bar,height=15).grid(row=3,column=0)  # Empty label with desired height
     btn_exit.grid(row=4,column=0,sticky="nw",padx=5)
     frm_left_bar.grid(row=1,column=0,sticky="nw",rowspan=5)
@@ -323,14 +341,18 @@ def main_GUI():
     frm_selection = tk.Frame(master=root,borderwidth=2)
     lbl_select_test = tk.Label(master=frm_selection,text="Select Test:", width= 13, font= 8,bg = "light grey")
     lbl_toggle_channel = tk.Label(master=frm_selection,text="Toggle Channel:", width= 13, font= 7,bg = "light grey")
+    lbl_serial_number = tk.Label(master=frm_selection,text="Serial Number:", width= 13, font= 7,bg = "light grey")
 
     lbl_select_test.grid(row=0,column=0,sticky="w",**paddings)
     lbl_toggle_channel.grid(row=2,column=0,sticky="w",**paddings)
+    lbl_serial_number.grid(row=4,column=0,sticky="w",**paddings)
     frm_selection.grid(row=1,column=2,sticky="nw",rowspan=5)
 
     dropdown_menu("Channel",["all","magenta", "cyan","yellow","k (black)"],frm_selection,3,on_option_selected)
     dropdown_menu("Test",["Decay", "Pressure"],frm_selection,1,on_option_selected)
-
+    dropdown_menu("Serial Number",serial_numbers_list,frm_selection,5,on_option_selected)
+    ########################## Test Result ###########################
+    # test results frame
     frm_result = tk.Frame(master=root,borderwidth=2)
     frm_max_pressures = tk.Frame(master=frm_result,borderwidth=2,highlightbackground="black", highlightthickness=2,height=2000)
     frm_pressure_test_result = tk.Frame(master=frm_result,borderwidth=2, highlightbackground="black", highlightthickness=2)
@@ -341,11 +363,9 @@ def main_GUI():
     frm_pressure_test_result.grid(row=0,column=1,sticky="nw",**paddings)
     frm_decay_test_result.grid(row=0,column=2,sticky="nw",**paddings)
 
-    ########################## Test Result ###########################
     # set titles for each test result frames
     lbl_max_pressure_title = tk.Label(master=frm_max_pressures,text="Max Pressures", font= (None, 16, "bold"))
     lbl_max_pressure_title.grid(row=0,column=0,sticky="w", pady=3.3, columnspan=2)
-    #tk.Label(frm_max_pressures, height=4).grid(row=5,column=0)  # Empty label with desired height
 
     lbl_pressure_test_title = tk.Label(master=frm_pressure_test_result,text="Pressure Test", font= (None, 16, "bold"))
     lbl_pressure_test_title.grid(row=0,column=0,sticky="w",pady=1)
@@ -394,6 +414,14 @@ def main_GUI():
         lbl_decay_test_limit.grid(row=3+row_increment,column=0,sticky="nw",padx=5,pady=3)
         lbl_decay_test_result.grid(row=4+row_increment,column=0,sticky="nw",padx=5,pady=3)
         row_increment += 3
+
+    ########################## Bottom Bar ###########################
+    #bottom bar to show the log file name
+    frm_bottom_bar = tk.Frame(master=root,borderwidth=2)
+    filename = log_file.split('\\')[-1]
+    lbl_log_file = tk.Label(master=frm_bottom_bar,text=f"Log File:{filename}",font= ('Arial',13))
+    lbl_log_file.grid(row=0,column=0,sticky="nw",padx=5,pady=5)
+    frm_bottom_bar.grid(row=3,column=1,sticky="nw",columnspan=2)
 
     configure_grid(root)
     configure_grid(frm_left_bar)
