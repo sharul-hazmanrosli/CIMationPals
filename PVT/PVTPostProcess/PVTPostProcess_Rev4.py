@@ -41,17 +41,20 @@ root.geometry("920x750")
 #hide the root window until pop up window is closed
 root.withdraw()   
 
-def add_scrollbar(parent,text_widget,row,column):
-    #add scrollbar to the text widget
-    scrollbar = tk.Scrollbar(parent,orient="horizontal",command=text_widget.yview)
-    text_widget.configure(yscrollcommand=scrollbar.set)
-    scrollbar.grid(row=row,column=column,sticky="ns")
-
-def select_directory(txt_output,type="source"):
-    directory = filedialog.askdirectory(title=f"Select {type.capitalize()} Directory")
-    txt_output.delete("1.0",tk.END)
-    txt_output.insert(tk.END,directory)
-    txt_output.xview_moveto(1)  #move the cursor to the end of the text widget, not working!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#configure the grid
+def configure_grid(widget):
+    print(str(widget)+"grid_szie()",widget.grid_size())
+    rows,columns = widget.grid_size()
+    for row in range(rows):
+        widget.rowconfigure(row,weight=1)
+    for column in range(columns):
+        widget.columnconfigure(column,weight=1)
+    # If the widget is a frame, also configure its children
+    if isinstance(widget, tk.Frame):
+        for child in widget.winfo_children():
+            child.grid(sticky='nsew')
+            # rows, columns = child.grid_size()
+            # configure_grid(child)
 
 def prompt_user_for_directory():
     global txt_source
@@ -78,9 +81,16 @@ def prompt_user_for_directory():
     #call on_close function when the window is closed
     prompt_window.protocol("WM_DELETE_WINDOW",lambda:on_close(txt_source))    
 
+def select_directory(txt_output,type="source"):
+    directory = filedialog.askdirectory(title=f"Select {type.capitalize()} Directory")
+    txt_output.delete("1.0",tk.END)
+    txt_output.insert(tk.END,directory)
+    txt_output.xview_moveto(1)  #move the cursor to the end of the text widget, not working!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 def on_cancel(window):
     window.destroy()
     root.deiconify()   #show the root window
+
 def on_close(window,txt_source):
     global source_path
     source_path = txt_source.get("1.0",tk.END).strip().replace('/','\\')
@@ -93,7 +103,6 @@ def on_close(window,txt_source):
         manual_SN_selection() #get the serial numbers from the source_path
         main_GUI()
         
-
 def exit_button_press():
     root.destroy()
 
@@ -107,6 +116,90 @@ def manual_SN_selection():
     #get the unique serial numbers from the files
     serial_numbers_list = list(set([file.split('_')[0] for file in files]))
 
+def color_name_to_hex(color_name):
+    if color_name == 'k (black)':
+        color_name = 'black'
+    try:
+        # Get the hexadecimal representation of the color name
+        hex_value = webcolors.name_to_hex(color_name)
+        if color_name == 'yellow':
+            hex_value = '#9B870C'
+        return hex_value
+    except ValueError:
+        # Handle the case when the color name is not valid
+        return None
+
+
+def obtain_latest_file(test_type):
+    # Use glob to find files matching the pattern '*PressureTest.log'
+    test_type = test_type.capitalize()+ 'Test' # capitialize the first letter of test_type
+    test_name = '*' + test_type + '.log'
+    files = glob.glob(os.path.join(source_path, test_name))
+
+    # If test file exist, use latest ; else exit  
+    if files:
+        # Sort files based on modification time (latest file first)
+        latest_test_file = max(files, key=os.path.getmtime)
+        return latest_test_file
+    else:
+        print(f"Error: No {test_name} file found")
+        # sys.exit()
+
+# function to be called when an option is selected
+def on_option_selected(*args):  #*args is a tuple, args[0] is the selected_option, args[1] is the selector name
+    print(f"The selected option is {args[0].get()}")
+    if args[1] == "Serial Number":             ########################to delete
+        return
+    elif args[1] == "Test":
+        plot(args[0].get(),CHANNEL) 
+    else:
+        plot(TEST_TYPE,args[0].get())
+
+def dropdown_menu(select,options_input,frm_selection,row_index,callback_function):
+    # Define the options for the dropdown
+    options = options_input
+
+    # Create a variable to store the current selection
+    selected_option = tk.StringVar(frm_selection)
+    selected_option.set(options[0])  # Set the default value
+    selected_option.trace("w", lambda *args: callback_function(selected_option,select))
+
+    # Create the dropdown
+    dropdown_channel = tk.OptionMenu(frm_selection, selected_option, *options)
+    dropdown_channel.grid(row=row_index,column=0,sticky="nw")
+    dropdown_channel.config(font=(11),width=15)
+
+def open_file():
+    '''
+    filepath = askopenfilename(filetypes=[("Text Files","*.txt"),("All Files","*.*")]) 
+    if not filepath:
+        return
+    #txt_editor.delete("1.0",tk.END)
+    with open(filepath,mode="r",encoding="utf-8") as input_file:
+        text = input_file.read()
+        #txt_editor.insert(tk.END,text)
+    root.title(f"Simple Text Editor - {filepath}")
+    '''
+
+def save_file(lbl_SN):
+    filepath = asksaveasfilename(defaultextension=".txt",filetypes=[("Text Files","*.txt"),("All Files","*.*")])
+    if not filepath:
+        return
+    with open(filepath,mode="w",encoding="utf-8") as output_file:
+        #text = txt_editor.get("1.0",tk.END)
+        # get text from lbl_SN
+        text = lbl_SN.cget("text")
+        output_file.write(text)
+    root.title(f"Simple Text Editor - {filepath}")
+
+def setup():
+    #pop up window or message box to ask user to enter serial number
+    serial_number = "TH36936123085Z"
+    #only show files that start with serial_number
+
+    filepath = askopenfilename(filetypes=[("Text Files","*.log"),("All Files","*.*")]) 
+    if not filepath:
+        return
 
 def plot(test_type=TEST_TYPE,channel = CHANNEL):
     global serial_numbers_list,log_file
@@ -193,115 +286,7 @@ def plot(test_type=TEST_TYPE,channel = CHANNEL):
     global CHANNEL,TEST_TYPE
     CHANNEL=channel
     TEST_TYPE=test_type
-
-def color_name_to_hex(color_name):
-    if color_name == 'k (black)':
-        color_name = 'black'
-    try:
-        # Get the hexadecimal representation of the color name
-        hex_value = webcolors.name_to_hex(color_name)
-        if color_name == 'yellow':
-            hex_value = '#9B870C'
-        return hex_value
-    except ValueError:
-        # Handle the case when the color name is not valid
-        return None
-
-def obtain_latest_file(test_type):
-    # Use glob to find files matching the pattern '*PressureTest.log'
-    test_type = test_type.capitalize()+ 'Test' # capitialize the first letter of test_type
-    test_name = '*' + test_type + '.log'
-    files = glob.glob(os.path.join(source_path, test_name))
-
-    # If test file exist, use latest ; else exit  
-    if files:
-        # Sort files based on modification time (latest file first)
-        latest_test_file = max(files, key=os.path.getmtime)
-        return latest_test_file
-    else:
-        print(f"Error: No {test_name} file found")
-        # sys.exit()
-
-# function to be called when an option is selected
-def on_option_selected(*args):  #*args is a tuple, args[0] is the selected_option, args[1] is the selector name
-    print(f"The selected option is {args[0].get()}")
-    if args[1] == "Serial Number":             ########################to delete
-        return
-    elif args[1] == "Test":
-        plot(args[0].get(),CHANNEL) 
-    else:
-        plot(TEST_TYPE,args[0].get())
-
-def dropdown_menu(select,options_input,frm_selection,row_index,callback_function):
-    # Define the options for the dropdown
-    options = options_input
-
-    # Create a variable to store the current selection
-    selected_option = tk.StringVar(frm_selection)
-    selected_option.set(options[0])  # Set the default value
-    selected_option.trace("w", lambda *args: callback_function(selected_option,select))
-
-    # Create the dropdown
-    dropdown_channel = tk.OptionMenu(frm_selection, selected_option, *options)
-    dropdown_channel.grid(row=row_index,column=0,sticky="nw")
-    dropdown_channel.config(font=(11),width=15)
-
-def open_file():
-    '''
-    filepath = askopenfilename(filetypes=[("Text Files","*.txt"),("All Files","*.*")]) 
-    if not filepath:
-        return
-    #txt_editor.delete("1.0",tk.END)
-    with open(filepath,mode="r",encoding="utf-8") as input_file:
-        text = input_file.read()
-        #txt_editor.insert(tk.END,text)
-    root.title(f"Simple Text Editor - {filepath}")
-    '''
-
-def save_file(lbl_SN):
-    filepath = asksaveasfilename(defaultextension=".txt",filetypes=[("Text Files","*.txt"),("All Files","*.*")])
-    if not filepath:
-        return
-    with open(filepath,mode="w",encoding="utf-8") as output_file:
-        #text = txt_editor.get("1.0",tk.END)
-        # get text from lbl_SN
-        text = lbl_SN.cget("text")
-        output_file.write(text)
-    root.title(f"Simple Text Editor - {filepath}")
-
-def setup():
-    #pop up window or message box to ask user to enter serial number
-    serial_number = "TH36936123085Z"
-    #only show files that start with serial_number
-
-    filepath = askopenfilename(filetypes=[("Text Files","*.log"),("All Files","*.*")]) 
-    if not filepath:
-        return
-
-
-#configure the grid
-def configure_grid(widget):
-    print(str(widget)+"grid_szie()",widget.grid_size())
-    rows,columns = widget.grid_size()
-    for row in range(rows):
-        widget.rowconfigure(row,weight=1)
-    for column in range(columns):
-        widget.columnconfigure(column,weight=1)
-    # If the widget is a frame, also configure its children
-    if isinstance(widget, tk.Frame):
-        for child in widget.winfo_children():
-            child.grid(sticky='nsew')
-            # rows, columns = child.grid_size()
-            # configure_grid(child)
-
-#configure_grid(root)
-# root.columnconfigure(0,minsize=20,weight=1)   #changing the minsize does not change anyth
-# root.columnconfigure(1,minsize=500,weight=1)
-# root.columnconfigure(2,minsize=20,weight=1)
-# root.rowconfigure(0,minsize=20,weight=1)
-# root.rowconfigure(1,minsize=500,weight=1)
-# root.rowconfigure(2,minsize=20,weight=1)
-
+    
 def main_GUI():
     #plot the graph, default is decay test
     plot("decay")     
