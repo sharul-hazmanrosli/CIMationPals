@@ -10,6 +10,7 @@ import glob
 import os
 from itertools import islice
 import sys
+import inspect
 
 #initialize empty dictionary test_result
 test_result = {}
@@ -30,12 +31,15 @@ source_path = ""
 destination_path = ""
 log_file = ""
 serial_numbers_list = ["default"]
+SERIAL_NUMBER = 'default'
+run_numbers_list = [0]
+RUN_NUMBER = 0
 
 #main window 
 root = tk.Tk()
 root.title("PVT Test")
 #set window size
-root.geometry("920x750") 
+root.geometry("850x750") 
 #fix window drag size
 #root.resizable(False,False)
 #hide the root window until pop up window is closed
@@ -43,7 +47,7 @@ root.withdraw()
 
 #configure the grid
 def configure_grid(widget):
-    print(str(widget)+"grid_szie()",widget.grid_size())
+    #print(str(widget)+"grid_szie()",widget.grid_size())
     rows,columns = widget.grid_size()
     for row in range(rows):
         widget.rowconfigure(row,weight=1)
@@ -100,13 +104,13 @@ def on_close(window,txt_source):
     else:
         root.deiconify()   #show the root window
         window.destroy()   #destroy the pop up window
-        manual_SN_selection() #get the serial numbers from the source_path
+        update_serial_numbers_list() #get the serial numbers from the source_path
         main_GUI()
         
 def exit_button_press():
     root.destroy()
 
-def manual_SN_selection():
+def update_serial_numbers_list():
     global serial_numbers_list
     exists = os.path.exists(source_path)
     #get all the file names from source_path
@@ -115,6 +119,39 @@ def manual_SN_selection():
     files = [file for file in files if file.endswith(".log")]
     #get the unique serial numbers from the files
     serial_numbers_list = list(set([file.split('_')[0] for file in files]))
+
+def on_serial_number_selected(*args):
+    global run_numbers_list,SERIAL_NUMBER,RUN_NUMBER
+    SERIAL_NUMBER = args[0].get()
+    print(f"The selected option is {SERIAL_NUMBER}")
+    #from source_path, filter all the files start with serial_number
+    files = os.listdir(source_path)
+    files = [file for file in files if file.startswith(SERIAL_NUMBER)]
+    #filter files that contain 10 items after splitting by _
+    files = [file for file in files if len(file.split('_')) == 10]
+    #get the unique run numbers from the files, run number is the 2nd part of the file name
+    run_numbers_list = list(set([file.split('_')[1] for file in files]))
+    if len(run_numbers_list) > 1:
+        #sort descending order
+        run_numbers_list.sort(reverse=True)
+    RUN_NUMBER = run_numbers_list[0]
+    load_log_file()
+    plot()
+    top_test_info_GUI()
+    right_selection_GUI()
+    test_result_GUI()
+    bottom_bar_GUI()
+
+def on_run_number_selected(*args):
+    global RUN_NUMBER,run_numbers_list
+    RUN_NUMBER = args[0].get()
+    print(f"The selected option is {RUN_NUMBER}")
+    load_log_file()
+    plot()
+    top_test_info_GUI()
+    right_selection_GUI()
+    test_result_GUI()
+    bottom_bar_GUI()
 
 def color_name_to_hex(color_name):
     if color_name == 'k (black)':
@@ -147,39 +184,42 @@ def obtain_latest_file(test_type):
 
 # function to be called when an option is selected
 def on_option_selected(*args):  #*args is a tuple, args[0] is the selected_option, args[1] is the selector name
+    global CHANNEL,TEST_TYPE
     print(f"The selected option is {args[0].get()}")
-    if args[1] == "Serial Number":             ########################to delete
-        return
-    elif args[1] == "Test":
-        plot(args[0].get(),CHANNEL) 
+    if args[1] == "Test":
+        load_log_file(args[0].get())
+        plot(CHANNEL) 
     else:
-        plot(TEST_TYPE,args[0].get())
+        plot(args[0].get())
 
 def dropdown_menu(select,options_input,frm_selection,row_index,callback_function):
+    global CHANNEL,TEST_TYPE,SERIAL_NUMBER,RUN_NUMBER
+    caller_of_caller_name = inspect.stack()[2].function
+    print(f"Called by the function that was called by {caller_of_caller_name}")
+
     # Define the options for the dropdown
     options = options_input
+    
+    if caller_of_caller_name == "main_GUI":
+        # Create a variable to store the current selection
+        selected_option = tk.StringVar(frm_selection)
+        selected_option.set(options[0])  # Set the default value
+    else:
+        selected_option = tk.StringVar(frm_selection)
+        if select == "Channel":
+            selected_option.set(CHANNEL)
+        elif select == "Test":
+            selected_option.set(TEST_TYPE)
+        elif select == "Serial Number":
+            selected_option.set(SERIAL_NUMBER)
+        else:
+            selected_option.set(RUN_NUMBER)
 
-    # Create a variable to store the current selection
-    selected_option = tk.StringVar(frm_selection)
-    selected_option.set(options[0])  # Set the default value
     selected_option.trace("w", lambda *args: callback_function(selected_option,select))
-
     # Create the dropdown
     dropdown_channel = tk.OptionMenu(frm_selection, selected_option, *options)
     dropdown_channel.grid(row=row_index,column=0,sticky="nw")
     dropdown_channel.config(font=(11),width=15)
-
-def open_file():
-    '''
-    filepath = askopenfilename(filetypes=[("Text Files","*.txt"),("All Files","*.*")]) 
-    if not filepath:
-        return
-    #txt_editor.delete("1.0",tk.END)
-    with open(filepath,mode="r",encoding="utf-8") as input_file:
-        text = input_file.read()
-        #txt_editor.insert(tk.END,text)
-    root.title(f"Simple Text Editor - {filepath}")
-    '''
 
 def save_file(lbl_SN):
     filepath = asksaveasfilename(defaultextension=".txt",filetypes=[("Text Files","*.txt"),("All Files","*.*")])
@@ -201,34 +241,49 @@ def setup():
     if not filepath:
         return
 
-def plot(test_type=TEST_TYPE,channel = CHANNEL):
-    global serial_numbers_list,log_file
-    #check the log file to load
-    if test_type.lower() == 'pressure':
-        log_file = obtain_latest_file('pressure')
+def load_log_file(test_type=TEST_TYPE):
+    global log_file,SERIAL_NUMBER,RUN_NUMBER
+    if SERIAL_NUMBER == 'default':
+        #check the log file to load
+        if test_type.lower() == 'pressure':
+            log_file = obtain_latest_file('pressure')
+        else:
+            log_file = obtain_latest_file('decay')
     else:
-        log_file = obtain_latest_file('decay')
-
-    #load the log file
-    data = np.loadtxt(log_file,skiprows=28,dtype=float,delimiter=',')
-    #data = pd.read_csv(log_file, delimiter=',', skiprows=3, header=None)
-
-    # Get channel names from Row 3 of log file
+        # Use glob to find files matching the pattern '*PressureTest.log'
+        test_type = test_type.capitalize()+ 'Test' # capitialize the first letter of test_type
+        test_name = SERIAL_NUMBER+'_'+str(RUN_NUMBER)+'*' + test_type + '.log'
+        files = glob.glob(os.path.join(source_path, test_name))
+        # If test file exist, use latest ; else exit  
+        if files:
+            # Sort files based on modification time (latest file first)
+            log_file = max(files, key=os.path.getmtime)   
+        else:
+            print(f"Error: No {test_name} file found")
+        # sys.exit()       
     with open(log_file, 'r') as file:
         lines = file.readlines()
-        channel_names_raw = lines[27].strip()
         #loop through log_file row 1 to row 27 and assign the values into test_result dictionary, text before : is key and text after : is value
         for i in range(27):
             line = lines[i].strip()
             key = line.split(':')[0].strip()
             value = line.split(':')[1].strip()
-            test_result[key] = value
+            test_result[key] = value    
     if len(sys.argv) > 1: 
         serial_numbers_list.clear()
         serial_numbers_list.append(test_result['serial_number'])
+        run_numbers_list.clear()
+        run_numbers_list.append(test_result['run_number'])
 
+def plot(channel = CHANNEL):
+    global log_file
+    data = np.loadtxt(log_file,skiprows=28,dtype=float,delimiter=',')
+    # Get channel names from Row 3 of log file
+    with open(log_file, 'r') as file:
+        lines = file.readlines()
+        channel_names_raw = lines[27].strip()
     CHANNEL_NAMES = (str(channel_names_raw.split(':')[1]).strip().lower()).split(',') 
-    
+
     #plot the data
     fig = plt.figure(figsize=(6,4),dpi=100)
     ax = fig.add_subplot()
@@ -285,64 +340,42 @@ def plot(test_type=TEST_TYPE,channel = CHANNEL):
     #update the global variables
     global CHANNEL,TEST_TYPE
     CHANNEL=channel
-    TEST_TYPE=test_type
-    
-def main_GUI():
-    #plot the graph, default is decay test
-    plot("decay")     
-    ########################## Left ToolBar ##########################
-    frm_left_bar = tk.Frame(master=root,borderwidth=2,relief=tk.RAISED)
 
-    btn_setup = tk.Button(frm_left_bar,height=4,width=8,font=(10),text="Set Up",command=prompt_user_for_directory)
-    btn_exit = tk.Button(frm_left_bar,height=4,width=8,font=(12),text="Exit",bg = "light coral",command=exit_button_press)
-
-    btn_setup.grid(row=1,column=0,sticky="ew",padx=5)
-    tk.Label(frm_left_bar,height=15).grid(row=3,column=0)  # Empty label with desired height
-    btn_exit.grid(row=4,column=0,sticky="nw",padx=5)
-    frm_left_bar.grid(row=1,column=0,sticky="nw",rowspan=5)
-
-    ######################### Top Test Info ##########################
-    frm_labels = tk.Frame(master=root,borderwidth=2)
-    lbl_SN = tk.Label(master=frm_labels,text=f"Serial No: {test_result['serial_number']}",height= 2, font= 11)
-    lbl_sampling_rate = tk.Label(master=frm_labels,text=f"Sampling Rate: {test_result['sampling_rate']}",height= 2, font= 11)
-
-    if test_result['test_result']:
-        lbl_test_result = tk.Label(master=frm_labels,text="Pass",bg = "light green", height= 2, width= 9, font= 11)
-    else:
-        lbl_test_result = tk.Label(master=frm_labels,text="Fail",bg = "light coral", height= 2, width= 9, font= 11)
-
-    #paddings for the labels
+def right_selection_GUI():
     paddings = {'padx': 5, 'pady': 5}
-
-    lbl_SN.grid(row=0,column=0,**paddings)
-    lbl_test_result.grid(row=0,column=1,**paddings)
-    lbl_sampling_rate.grid(row=0,column=2,**paddings)
-    frm_labels.grid(row=0,column=1,sticky="nw",columnspan=2)
-
-    # #plot the graph, default is decay test
-    # plot("decay") 
-
-    ########################## Right Filter ##########################
     frm_selection = tk.Frame(master=root,borderwidth=2)
     lbl_select_test = tk.Label(master=frm_selection,text="Select Test:", width= 13, font= 8,bg = "light grey")
     lbl_toggle_channel = tk.Label(master=frm_selection,text="Toggle Channel:", width= 13, font= 7,bg = "light grey")
     lbl_serial_number = tk.Label(master=frm_selection,text="Serial Number:", width= 13, font= 7,bg = "light grey")
+    lbl_run_number = tk.Label(master=frm_selection,text="Run Number:", width= 13, font= 7,bg = "light grey")
 
     lbl_select_test.grid(row=0,column=0,sticky="w",**paddings)
     lbl_toggle_channel.grid(row=2,column=0,sticky="w",**paddings)
     lbl_serial_number.grid(row=4,column=0,sticky="w",**paddings)
+    lbl_run_number.grid(row=6,column=0,sticky="w",**paddings)
     frm_selection.grid(row=1,column=2,sticky="nw",rowspan=5)
 
     dropdown_menu("Channel",["all","magenta", "cyan","yellow","k (black)"],frm_selection,3,on_option_selected)
     dropdown_menu("Test",["Decay", "Pressure"],frm_selection,1,on_option_selected)
-    dropdown_menu("Serial Number",serial_numbers_list,frm_selection,5,on_option_selected)
-    ########################## Test Result ###########################
+    dropdown_menu("Serial Number",serial_numbers_list,frm_selection,5,on_serial_number_selected)
+    dropdown_menu("Run Number",run_numbers_list,frm_selection,7,on_run_number_selected)
+    configure_grid(frm_selection)
+
+    frm_exit = tk.Frame(master=root,borderwidth=2)
+    #insert empty lbl before btn_exit
+    tk.Label(frm_exit,height=7,width=8,font=(12),text="").grid(row=0,column=0,sticky="nsew",padx=5)
+    btn_exit = tk.Button(frm_exit,height=2,width=10,font=(12),text="Exit",bg = "light coral",command=exit_button_press)
+    btn_exit.grid(row=1,column=0,sticky="nsew")
+    frm_exit.grid(row=2,column=2,sticky="nsew",rowspan=5,padx=(50,5))
+
+def test_result_GUI():
     # test results frame
     frm_result = tk.Frame(master=root,borderwidth=2)
     frm_max_pressures = tk.Frame(master=frm_result,borderwidth=2,highlightbackground="black", highlightthickness=2,height=2000)
     frm_pressure_test_result = tk.Frame(master=frm_result,borderwidth=2, highlightbackground="black", highlightthickness=2)
     frm_decay_test_result = tk.Frame(master=frm_result,borderwidth=2, highlightbackground="black", highlightthickness=2)
 
+    paddings = {'padx': 5, 'pady': 5}
     frm_result.grid(row=2,column=1,sticky="nw",columnspan=2)
     frm_max_pressures.grid(row=0,column=0,sticky="nw",**paddings)
     frm_pressure_test_result.grid(row=0,column=1,sticky="nw",**paddings)
@@ -400,7 +433,12 @@ def main_GUI():
         lbl_decay_test_result.grid(row=4+row_increment,column=0,sticky="nw",padx=5,pady=3)
         row_increment += 3
 
-    ########################## Bottom Bar ###########################
+    configure_grid(frm_result)
+    configure_grid(frm_max_pressures)
+    configure_grid(frm_pressure_test_result)
+    configure_grid(frm_decay_test_result)
+
+def bottom_bar_GUI():
     #bottom bar to show the log file name
     frm_bottom_bar = tk.Frame(master=root,borderwidth=2)
     filename = log_file.split('\\')[-1]
@@ -408,15 +446,46 @@ def main_GUI():
     lbl_log_file.grid(row=0,column=0,sticky="nw",padx=5,pady=5)
     frm_bottom_bar.grid(row=3,column=1,sticky="nw",columnspan=2)
 
+def top_test_info_GUI():
+    frm_top_bar = tk.Frame(master=root,borderwidth=2)
+    lbl_sampling_rate = tk.Label(master=frm_top_bar,text=f"Sampling Rate: {test_result['sampling_rate']}",height= 2, font= 11)
+
+    if test_result['test_result']:
+        lbl_test_result = tk.Label(master=frm_top_bar,text="Pass",bg = "light green", height= 2, width= 9, font= 11)
+    else:
+        lbl_test_result = tk.Label(master=frm_top_bar,text="Fail",bg = "light coral", height= 2, width= 9, font= 11)
+    btn_file = tk.Button(frm_top_bar,width=5,font=(10),text="File",command=prompt_user_for_directory)
+    btn_help = tk.Button(frm_top_bar,width=5,font=(10),text="Help")
+
+    #paddings for the labels
+    paddings = {'padx': 5, 'pady': 5}
+
+    btn_file.grid(row=0,column=0,sticky="ew",padx=(10,2))
+    btn_help.grid(row=0,column=1,sticky="ew",padx=(0,10))
+    #insert empty label before lbl_test_result
+    tk.Label(frm_top_bar,height=2,width=5,font=(12),text="").grid(row=0,column=2,sticky="nw",padx=5)
+    lbl_test_result.grid(row=0,column=3,**paddings)
+    lbl_sampling_rate.grid(row=0,column=4,**paddings)
+    frm_top_bar.grid(row=0,column=1,sticky="nw",columnspan=2)
+    configure_grid(frm_top_bar)
+
+def main_GUI():
+    #load log_file, default is decay test
+    load_log_file("decay")
+    #plot the graph
+    plot()     
+    ########################## Left Padding ##########################
+    frm_left_padding = tk.Frame(master=root,borderwidth=2,width=20)
+    frm_left_padding.grid(row=1,column=0,sticky="nw",rowspan=5)
+
+    top_test_info_GUI()
+    right_selection_GUI()
+    test_result_GUI()
+    bottom_bar_GUI()    
+
     configure_grid(root)
-    configure_grid(frm_left_bar)
-    configure_grid(frm_labels)
-    configure_grid(frm_selection)
-    configure_grid(frm_result)
-    configure_grid(frm_max_pressures)
-    configure_grid(frm_pressure_test_result)
-    configure_grid(frm_decay_test_result)
-    ##################################################################
+    configure_grid(frm_left_padding)
+
 
 if __name__ == "__main__":
     #'''
