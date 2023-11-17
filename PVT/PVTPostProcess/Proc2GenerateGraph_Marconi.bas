@@ -12,19 +12,14 @@ Imports System.Collections.Generic
 
 'Declaration of Const variables for Blockage Test, Pump Initialization and Shutdown, Pressure Test, R&D, Decay Test
 
-Const RUN_PVT_POST_PROCESS = True
-
 Const PRESSURE_TEST_SAMPLINGHZ = 1000
-
-Const PRESSURE_TEST_NUMBERSAMPLES = 3800    'change from 2500 to 3800 to address low pressure seen in sealed unit
-
-'Const PRESSURE_TEST_STOP_COMPENSATION_PRESSURE = 80
+Const PRESSURE_TEST_STOP_COMPENSATION_PRESSURE = 80
 Const PRESSURE_TEST_MAX_VENT_DELAY = 50
 Const PRESSURE_TEST_MIN_VENT_DELAY = -75
 Const PRESSURE_TEST_MAX_VENTRATE = 1434
 Const PRESSURE_TEST_MIN_VENTRATE = 784
 
-'Const DECAY_TEST_MIN_DECAY = 0
+Const DECAY_TEST_MIN_DECAY = 0
 Const DECAY_TEST_MAX_DECAY = -5.75
 Const DECAY_TEST_MAX_VENTRATE = 1000
 Const DECAY_TEST_MIN_VENTRATE = 200
@@ -66,7 +61,7 @@ Retest:
         Dim Test As String
         Dim Pressures(2, 3) As Double
     
-        Test = "Test1"
+        Test = "PVTPostProcess"
     
         Pressures(0, 0) = 0.0869
         Pressures(0, 1) = 0.0457
@@ -81,26 +76,23 @@ Retest:
         LogPressures Test, Pressures
 
         ' Running PVT Post Process to generate graph for results
-        If RUN_PVT_POST_PROCESS Then
+        If TestParms.blnRunPVTPostProcess Then
             Display.Text = "Running PVTPostProcess.exe to generate result graphs"
             sErrLine = CallersLine(-1)
-    
             sResp = GenerateGraph()
     
             If sResp = "True" Then
                 bTestResult = True
     			GoTo EndTry
-    
     		ElseIf sResp = "Retry" Then
                 bTestResult = False
                 GoTo Retest
-    
             Else
                 bTestResult = False
                 GoTo EndTry
-    
     		End If
-    
+        Else
+            Display.Text = "Skipping PVTPostProcess.exe to generate result graphs"
         End If
 
 EndTry:
@@ -112,6 +104,10 @@ EndTry:
         If bTestResult Then
             EndTest(CIMTestResult.Pass)
         Else
+'            If LIMIT_CARRIAGE_SPEED Then '20160121_HK: Updated based on May Lee request
+'                sErrLine = CallersLine(-1)
+'                printer.cmd_servo_data_set servo_carriage,servo_speed_limit,0
+'            End If
             EndTest(CIMTestResult.Fail, sFailInfo)
         End If
         
@@ -154,12 +150,16 @@ Function GenerateGraph() As String
 
         'sError = process.StandardError.ReadToEnd
         'Display.Text = sError
-        'process.WaitForExit
+        'process.WaitForExit        'currently not robust, cimation hangs once process starts and wait
         'process.Close
 
         Dim sGraphResult As Integer
-        sGraphResult = GUIUtil.DisplayPassFailRetry("Is the graph acceptable?",DisplayPanelType.DEFAULT,False)
+        sGraphResult = GUIUtil.DisplayPassFailRetry("Is the graph acceptable?",DisplayPanelType.Default,False)
         ' 0 - Pass; 1 = Retry; 2 = Fail
+
+        'Retry to show failure msg
+        'TEST PARMS TO RUN GUI OR NOT
+
         sErrLine = CallersLine(-1)
         If sGraphResult = 0 Then
             GenerateGraph = "True"
@@ -185,38 +185,38 @@ Sub LogPressures(Test$, Pressures(,) As Double)
     TestLimits.Add("test_results", 0)
     TestLimits.Add("sampling_rate", PRESSURE_TEST_SAMPLINGHZ)
     TestLimits.Add("serial_number", "TH36936123085Z")
-    TestLimits.Add("run_number", RunTime.RunNumber)
+    TestLimits.Add("run_number", "RunNumber")   'RunTime.RunNumber
     'Max Pressures
-    TestLimits.Add("maxP_magenta", 98.51)                   'MaxP(COLOR) from Pressure Test
+    TestLimits.Add("maxP_magenta", 98.51)
     TestLimits.Add("maxP_cyan", 98.26)
     TestLimits.Add("maxP_yellow", 98.54)
     TestLimits.Add("maxP_black", 98.33)
-    TestLimits.Add("maxP_within_range", 1)                  'Check if the MaxP(COLOR) {returned from FindMaxInRange} is < PRESSURE_TEST_MIN_MAX{95} or > PRESSURE_TEST_MAX_MIN{134},set Function to false
-    'Pressure Test Results
-    TestLimits.Add("pressure_vent_delay", PRESSURE_TEST_STOP_COMPENSATION_PRESSURE) 'PressureTestVentDelay(COLOR) = RiseTimes(COLOR)*1000 - PRESSURE_TEST_PUMP_TIME{450} + RISETIME_OFFSET{25}
-    TestLimits.Add("pressure_vent_rate", 1500)              'Decay(COLOR)
-    TestLimits.Add("pressure_vent_delay_result", 1)
-    TestLimits.Add("pressure_vent_rate_result", 0)
+    TestLimits.Add("maxP_within_range", 1)      'MaxP(COLOR)
+    'Pressure Test Result
+    TestLimits.Add("Vent Delay", PRESSURE_TEST_STOP_COMPENSATION_PRESSURE)
+    TestLimits.Add("Vent Rate", 1500)           'Decay(COLOR)
+    TestLimits.Add("Vent Delay Result", 1)
+    TestLimits.Add("Vent Rate Result", 0)
     'Pressure Test Limits
-    TestLimits.Add("pressure_vent_delay_UL", PRESSURE_TEST_MAX_VENT_DELAY)
-    TestLimits.Add("pressure_vent_delay_LL", PRESSURE_TEST_MIN_VENT_DELAY)
-    TestLimits.Add("pressure_vent_rate_UL", PRESSURE_TEST_MAX_VENTRATE)
-    TestLimits.Add("pressure_vent_rate_LL", PRESSURE_TEST_MIN_VENTRATE)
-    'Decay Test Results
-    TestLimits.Add("decay_rate", DECAY_TEST_MIN_DECAY)      'Decay(COLOR)
-    TestLimits.Add("decay_vent_rate", 500)                  'VentRate(COLOR)
-    TestLimits.Add("decay_result", 1)
-    TestLimits.Add("decay_vent_rate_result", 1)
-    'Decay Test Limits
-    TestLimits.Add("decay_UL", DECAY_TEST_MIN_DECAY)
-    TestLimits.Add("decay_LL", DECAY_TEST_MAX_DECAY)
-    TestLimits.Add("decay_vent_rate_UL", DECAY_TEST_MAX_VENTRATE)
-    TestLimits.Add("decay_vent_rate_LL", DECAY_TEST_MIN_VENTRATE)
+    TestLimits.Add("Vent Delay UL", PRESSURE_TEST_MAX_VENT_DELAY)
+    TestLimits.Add("Vent Delay LL", PRESSURE_TEST_MIN_VENT_DELAY)
+    TestLimits.Add("Vent Rate UL", PRESSURE_TEST_MAX_VENTRATE)
+    TestLimits.Add("Vent Rate LL", PRESSURE_TEST_MIN_VENTRATE)
+    'Decay Test Result
+    TestLimits.Add("Decay Min", DECAY_TEST_MIN_DECAY)   'Decay(COLOR)
+    TestLimits.Add("Decay Vent Rate", 500)              'VentRate(COLOR)
+    TestLimits.Add("Decay Result", 1)
+    TestLimits.Add("Decay Vent Rate Result", 1)
+    'Decay Test Result
+    TestLimits.Add("Decay UL", DECAY_TEST_MIN_DECAY)
+    TestLimits.Add("Decay LL", DECAY_TEST_MAX_DECAY)
+    TestLimits.Add("Decay Vent Rate UL", DECAY_TEST_MAX_VENTRATE)
+    TestLimits.Add("Decay Vent Rate LL", DECAY_TEST_MIN_VENTRATE)
 
     Try
         sErrLine = CallersLine(-1)
         Dt = Format(Now,"yyyy_MM_dd_HH_mm_ss")
-        sFileName = "TH36936123085Z" + "_"+ Dt + "_" + Test + "_Proc2GenerateGraph" + ".log" 'RunTime.SerialNumber
+        sFileName = "TH36936123085Z" + "_" + "RunNumber" + "_" + Dt + "_" + Test + "_Proc2GenerateGraph" + ".log" 'RunTime.SerialNumber
 
         sErrLine = CallersLine(-1)
         SavePath = RunTime.ProjectPath & "\Results\" & RunTime.TestName & "\" & sFileName
@@ -229,9 +229,9 @@ Sub LogPressures(Test$, Pressures(,) As Double)
         sErrLine = CallersLine(-1)
         Writer = New System.IO.StreamWriter(SavePath)
         sErrLine = CallersLine(-1)
-        Writer.WriteLine "SamplingHz: " + Str(PRESSURE_TEST_SAMPLINGHZ)'Str(NIDAQ.AISamplingRateHz)
+        Writer.WriteLine "SamplingHz: " + "100" 'Str(NIDAQ.AISamplingRateHz)
         sErrLine = CallersLine(-1)
-        Writer.WriteLine "Number Samples: " + Str(PRESSURE_TEST_NUMBERSAMPLES) 'Str(NIDAQ.NumberSamples)
+        Writer.WriteLine "Number Samples: " + Str(PRESSURE_TEST_SAMPLINGHZ) 'Str(NIDAQ.NumberSamples)
 
         sErrLine = CallersLine(-1)
         For Each kvp As KeyValuePair(Of String, Object) In TestLimits
@@ -374,7 +374,7 @@ End Sub
 '		<Last_Changed_By Value="" Description=""/>
 '		<Test_Type Value="" Description=""/>
 '		<CreatedDate Value="10/13/2023 11:16:38" Description=""/>
-'		<ModifiedOn Value="11/15/2023 09:35:43" Description=""/>
+'		<ModifiedOn Value="11/17/2023 11:22:25" Description=""/>
 '		<Asset_Classification Value="" Description=""/>
 '		<Purpose Value="" Description=""/>
 '		<Theory_Of_Operation Value="" Description=""/>
@@ -390,6 +390,7 @@ End Sub
 '	<Metadata>
 '		<TestParms>
 '			<blnSaveRawToSharedDrive Value="0" Description="" Optional="0" Default_Set="Embedded" Default_Key="_Current"/>
+'			<blnRunPVTPostProcess Value="" Description="" Optional="0" Default_Set="Embedded" Default_Key="_Current"/>
 '
 '		</TestParms>
 '
@@ -420,6 +421,7 @@ End Sub
 '
 '	<ParameterSets>
 '		<EMBEDDED>
+'			<blnRunPVTPostProcess Value="1" Description="" ResultDefID=""/>
 '			<blnSaveRawToSharedDrive Value="0" Description="" ResultDefID=""/>
 '
 '		</EMBEDDED>
