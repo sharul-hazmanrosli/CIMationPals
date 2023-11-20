@@ -33,7 +33,8 @@ destination_path = ""
 log_file = ""
 serial_numbers_list = ["NA"]
 SERIAL_NUMBER = "NA"
-
+info_label = None
+global btn_close
 
 #main window 
 root = tk.Tk()
@@ -42,9 +43,11 @@ root.title("PVT Test")
 root.geometry("850x750") 
 #fix window drag size
 #root.resizable(False,False) 
+menubar = tk.Menu(root)
+root.config(menu=menubar)
 
 #set minsize and weight for each row and column
-root.rowconfigure(0,minsize=2,weight=1)
+#root.rowconfigure(0,minsize=2,weight=1)
 root.rowconfigure(1,minsize=400,weight=1)
 root.rowconfigure(2,minsize=200,weight=1)
 root.columnconfigure(0,minsize=20,weight=1)
@@ -67,6 +70,8 @@ def configure_grid(widget):
             # configure_grid(child)   
 
 def select_directory():
+    if info_label != None:
+        close_label()
     global source_path
     directory = filedialog.askdirectory(title=f"Select Source Directory")
     if directory != "": #if user click cancel, directory will be empty string
@@ -75,6 +80,7 @@ def select_directory():
         
 def exit_button_press():
     root.destroy()
+
 
 def update_serial_numbers_list():
     global serial_numbers_list
@@ -107,12 +113,13 @@ def on_serial_number_selected(*args):
     print(f"The selected option is {SERIAL_NUMBER}")
     update_run_numbers_list() #get the run numbers from the source_path
     RUN_NUMBER = run_numbers_list[0]
-    load_log_file()
-    plot()
-    top_test_info_GUI()
-    right_selection_GUI()
-    test_result_GUI()
-    bottom_bar_GUI()
+    # load_log_file()
+    # plot()
+    main_GUI()
+    #top_test_info_GUI()
+    # right_selection_GUI()
+    # test_result_GUI()
+    # bottom_bar_GUI()
 
 def on_run_number_selected(*args):
     global RUN_NUMBER,run_numbers_list
@@ -291,6 +298,33 @@ def plot(channel = CHANNEL):
     global CHANNEL,TEST_TYPE
     CHANNEL=channel
 
+# Define the close_label function
+def close_label():
+    global info_label, btn_close
+    # Destroy the label and the button
+    info_label.grid_forget()
+    btn_close.grid_forget()
+    # Restore the grid options
+    main_GUI()
+
+def about_info():
+    global info_label, btn_close
+    # Hide right_selection_GUI, test_result_GUI, bottom_bar_GUI
+    for widget in root.winfo_children():
+        widget.grid_forget()
+
+    # Create the label and button
+    info_label = tk.Label(master=root, text="PVT Test Post Process\nVersion 1.0\nCreated by: HP CIMation", font=("Arial", 16))
+    btn_close = tk.Button(master=root, text="Close", font=("Arial", 16))
+        
+    # Set the command of the button to the close_label function
+    btn_close.config(command=close_label)
+
+    # Display the label and button on the screen
+    info_label.grid(row=1, column=1, sticky="nsew", padx=10, pady=10)
+    btn_close.grid(row=2, column=2, sticky="e",padx=10, pady=10)
+ 
+
 def top_test_info_GUI():
     #paddings for the labels
     paddings = {'padx': 5, 'pady': 5}
@@ -330,6 +364,14 @@ def right_selection_GUI():
     lbl_serial_number = tk.Label(master=frm_selection,text="Serial Number:", width= 13, font= ("Arial",16),bg = "light grey")
     lbl_run_number = tk.Label(master=frm_selection,text="Run Number:", width= 13, font= ("Arial",16),bg = "light grey")
 
+    if source_path != "":
+        if test_result['test_result']:
+            lbl_test_result = tk.Label(master=frm_selection,text="Pass",bg = "light green", height= 2, width= 9, font= ("Arial",16))
+        else:
+            lbl_test_result = tk.Label(master=frm_selection,text="Fail",bg = "light coral", height= 2, width= 9, font= ("Arial",16))
+        #insert empty label before lbl_test_result
+        lbl_test_result.grid(row=0,column=0,sticky="w",**paddings)
+    
     lbl_select_test.grid(row=0,column=0,sticky="w",**paddings)
     lbl_toggle_channel.grid(row=2,column=0,sticky="w",**paddings)
     lbl_serial_number.grid(row=4,column=0,sticky="w",**paddings)
@@ -442,6 +484,20 @@ def bottom_bar_GUI():
     lbl_log_file.grid(row=0,column=0,sticky="nw",padx=5,pady=5)
     frm_bottom_bar.grid(row=3,column=1,sticky="nw",columnspan=2)
 
+def menu_bar_GUI():
+
+    menu_f = tk.Menu(menubar,tearoff=0) # file menu
+    menu_f.add_command(label="Open",command=select_directory)
+    menu_h = tk.Menu(menubar,tearoff=0) # help menu
+    menu_h.add_command(label="About", command=about_info)
+
+    #edit this select_directory command
+
+    menubar.add_cascade(label="File", menu=menu_f) # Top Line
+    menubar.add_cascade(label="Help", menu=menu_h) 
+
+
+
 def main_GUI():
     if source_path != '':
         #load log_file, default is decay test
@@ -452,16 +508,16 @@ def main_GUI():
         update_run_numbers_list() #get the run numbers from the source_path
     else:
         #add label ask user to click file button and select source directory
-        lbl_select_source = tk.Label(master=root,text="     Please click File button and select source directory!",font= ("Arial",16),fg="red")
+        lbl_select_source = tk.Label(master=root,text="     Please click File and open a source dirctory",font= ("Arial",16),fg="red")
         lbl_select_source.grid(row=1,column=1,sticky="nw",padx=5,pady=5)
     ########################## Left Padding ##########################
     frm_left_padding = tk.Frame(master=root,borderwidth=2,width=20)
     frm_left_padding.grid(row=1,column=0,sticky="nw",rowspan=5)
 
-    top_test_info_GUI()
+    #top_test_info_GUI()
     right_selection_GUI()
     test_result_GUI()
-    bottom_bar_GUI()    
+    bottom_bar_GUI() 
 
     configure_grid(root)
     configure_grid(frm_left_padding)
@@ -475,7 +531,7 @@ if __name__ == "__main__":
     #     print("source_path: ",source_path)
     #     main_GUI()
     # else:
-
+    menu_bar_GUI()
     main_GUI()
     #'''    
     #start the event loop
