@@ -218,7 +218,7 @@ def load_log_file(test_type=TEST_TYPE):
             key = line.split(':')[0].strip()
             value = line.split(':')[1].strip()
             test_result[key] = value   
-        if SERIAL_NUMBER == "NAv":
+        if SERIAL_NUMBER == "NA":
             SERIAL_NUMBER = test_result['serial_number']
             RUN_NUMBER = test_result['run_number'] 
         # serial_numbers_list.clear()
