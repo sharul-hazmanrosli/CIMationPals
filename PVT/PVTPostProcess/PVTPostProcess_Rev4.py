@@ -75,8 +75,6 @@ def configure_grid(widget):
 def select_directory():
     if info_label != None:
         close_label()
-    if info_label != None:
-        close_label()
     global source_path
     directory = filedialog.askdirectory(title=f"Select Source Directory")
     if directory != "":  # if user click cancel, directory will be empty string
@@ -86,7 +84,6 @@ def select_directory():
 
 def exit_button_press():
     root.destroy()
-
 
 
 def update_serial_numbers_list():
@@ -562,20 +559,6 @@ def menu_bar_GUI():
 def toggle_annotation_GUI():
     btn_toggle = tk.Button(master=root, text="Toggle Annotation", font=("Arial", 12),command=on_toggle_annotation_click)
     btn_toggle.grid(row=1, column=1, sticky="en", padx=5, pady=5)
-
-
-def menu_bar_GUI():
-
-    menu_f = tk.Menu(menubar,tearoff=0) # file menu
-    menu_f.add_command(label="Open",command=select_directory)
-    menu_h = tk.Menu(menubar,tearoff=0) # help menu
-    menu_h.add_command(label="About", command=about_info)
-
-    #edit this select_directory command
-
-    menubar.add_cascade(label="File", menu=menu_f) # Top Line
-    menubar.add_cascade(label="Help", menu=menu_h) 
-
 
 
 def main_GUI():
