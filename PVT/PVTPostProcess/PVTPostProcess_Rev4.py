@@ -29,7 +29,7 @@ new_log_file = True
 info_label = None
 global btn_close
 toggle_annotation = True
-test_result_default = {'SamplingHz': 'NA', 'Number Samples': 'NA', 'test_result': -1, 'sampling_rate': 'NA', 'maxP_magenta': 'NA', 'maxP_cyan': 'NA', 'maxP_yellow': 'NA', 'maxP_black': 'NA', 'maxP_within_range': -1,
+test_result_default = {'SamplingHz': 'NA', 'Number Samples': 'NA', 'Mech2TestPrimingPressure': -1, 'sampling_rate': 'NA', 'maxP_magenta': 'NA', 'maxP_cyan': 'NA', 'maxP_yellow': 'NA', 'maxP_black': 'NA', 'maxP_within_range': -1,
                        'pressure_vent_delay': 'NA', 'pressure_vent_rate': 'NA', 'pressure_vent_delay_result': -1, 'pressure_vent_rate_result': -1,
                        'pressure_vent_delay_UL': 'NA', 'pressure_vent_delay_LL': 'NA', 'pressure_vent_rate_UL': 'NA', 'pressure_vent_rate_LL': 'NA',
                        'decay_rate': 'NA', 'decay_vent_rate': 'NA', 'decay_rate_result': -1, 'decay_vent_rate_result': -1,
@@ -207,47 +207,116 @@ def dropdown_menu(select, options_input, frm_selection, row_index, callback_func
     menubutton.bind("<Enter>", lambda event, h=menubutton: h.configure(bg="#CCE8FF"))
     menubutton.bind("<Leave>", lambda event, h=menubutton: h.configure(bg="SystemButtonFace"))
 
-
-def load_log_file(test_type=TEST_TYPE):
-    global log_file, SERIAL_NUMBER, RUN_NUMBER, new_log_file,test_result
-    if SERIAL_NUMBER == "NA":  # first time load log_file
-        # load latest log file
-        if test_type.lower() == 'pressure':
-            log_file = obtain_latest_file('pressure')
-        else:
-            log_file = obtain_latest_file('decay')
+def extract_test_result(test_type=TEST_TYPE):
+    global test_result
+    pressure_test_file = ""
+    decay_test_file = ""
+    if SERIAL_NUMBER == "NA" and RUN_NUMBER == "NA":  # first time load log_file
+        # get latest result from both pressure and decay test
+        pressure_test_file = obtain_latest_file('pressure')
+        decay_test_file = obtain_latest_file('decay')
     else:
-        # capitialize the first letter of test_type
-        test_type = test_type.capitalize() + 'Test'
-        if RUN_NUMBER != "NA":
-            test_name = SERIAL_NUMBER+'_' + str(RUN_NUMBER)+'*' + test_type + '.log'
+        if RUN_NUMBER == "NA":
+            # get latest result for that serial number
+            pressure_test_file = SERIAL_NUMBER+'_' +'*' + 'PressureTest.log'
+            decay_test_file = SERIAL_NUMBER+'_' +'*' + 'DecayTest.log'
         else:
-            test_name = SERIAL_NUMBER+'*' + test_type + '.log'
+            # capitialize the first letter of test_type
+            pressure_test_file = SERIAL_NUMBER+'_' + str(RUN_NUMBER)+'*' + 'PressureTest.log'
+            decay_test_file = SERIAL_NUMBER+'_' + str(RUN_NUMBER)+'*' + 'DecayTest.log'
         # Use glob to find files matching the pattern 'SERIAL_NUMBER+'_'+RUN_NUMBER+*PressureTest.log'
-        files = glob.glob(os.path.join(source_path, test_name))
+        files = glob.glob(os.path.join(source_path, pressure_test_file))
         # If test file exist, use latest ; else exit
         if files:
             # Sort files based on modification time (latest file first)
-            log_file = max(files, key=os.path.getmtime)
+            pressure_test_file = max(files, key=os.path.getmtime)
         else:
-            print(f"Error: No {test_name} file found")
+            print(f"Error: No {pressure_test_file} file found")
+        # Use glob to find files matching the pattern 'SERIAL_NUMBER+'_'+RUN_NUMBER+*DecayTest.log'
+        files = glob.glob(os.path.join(source_path, decay_test_file))
+        # If test file exist, use latest ; else exit
+        if files:
+            # Sort files based on modification time (latest file first)
+            decay_test_file = max(files, key=os.path.getmtime)
+        else:
+            print(f"Error: No {decay_test_file} file found")
+    # extract test_result from pressure_test_file
+    with open(pressure_test_file, 'r') as file:
+        lines = file.readlines()
+        # find index of line that starts with Colors:
+        channel_index = [i for i, line in enumerate(lines) if line.startswith('Colors:')][0]
+        for i in range(channel_index):
+            line = lines[i].strip()
+            #check if line is empty
+            if line == '':
+                continue
+            key = line.split(':')[0].strip()
+            value = line.split(':')[1].strip()  
+            test_result[key] = value
+    # extract test_result from decay_test_file
+    with open(decay_test_file, 'r') as file:
+        lines = file.readlines()
+        # find index of line that starts with Colors:
+        channel_index = [i for i, line in enumerate(lines) if line.startswith('Colors:')][0]
+        for i in range(channel_index):
+            line = lines[i].strip()
+            #check if line is empty
+            if line == '':
+                continue
+            key = line.split(':')[0].strip()
+            value = line.split(':')[1].strip()  
+            test_result[key] = value
+    if test_type == 'Pressure':
+        return pressure_test_file
+    else:
+        return decay_test_file
+    
+
+def load_log_file(test_type=TEST_TYPE):
+    global log_file, SERIAL_NUMBER, RUN_NUMBER, new_log_file,test_result
+    # extract test_result from log_file
+    log_file = extract_test_result(test_type)    
+    # if SERIAL_NUMBER == "NA":  # first time load log_file
+    #     # load latest log file
+    #     if test_type.lower() == 'pressure':
+    #         log_file = obtain_latest_file('pressure')
+    #     else:
+    #         log_file = obtain_latest_file('decay')     
+    # else:
+    #     # capitialize the first letter of test_type
+    #     test_type = test_type.capitalize() + 'Test'
+    #     if RUN_NUMBER != "NA":
+    #         test_name = SERIAL_NUMBER+'_' + str(RUN_NUMBER)+'*' + test_type + '.log'
+    #     else:
+    #         test_name = SERIAL_NUMBER+'*' + test_type + '.log'
+        # # Use glob to find files matching the pattern 'SERIAL_NUMBER+'_'+RUN_NUMBER+*PressureTest.log'
+        # files = glob.glob(os.path.join(source_path, test_name))
+        # # If test file exist, use latest ; else exit
+        # if files:
+        #     # Sort files based on modification time (latest file first)
+        #     log_file = max(files, key=os.path.getmtime)
+        # else:
+        #     print(f"Error: No {test_name} file found")
     # check if log_file is logging test result
     if len(log_file.split('_')) < 9:
         new_log_file = False
     else:
         new_log_file = True
     if new_log_file:
-        with open(log_file, 'r') as file:
-            lines = file.readlines()
-            # loop through log_file row 1 to row 27 and assign the values into test_result dictionary, text before : is key and text after : is value
-            for i in range(49):
-                line = lines[i].strip()
-                key = line.split(':')[0].strip()
-                value = line.split(':')[1].strip()
-                test_result[key] = value
-            if SERIAL_NUMBER == "NA":
-                #SERIAL_NUMBER = test_result['serial_number']
-                RUN_NUMBER = log_file.split('\\')[-1].split('_')[1]
+        # with open(log_file, 'r') as file:
+        #     lines = file.readlines()
+        #     # loop through log_file row 1 to row 27 and assign the values into test_result dictionary, text before : is key and text after : is value
+        #     for i in range(49):
+        #         line = lines[i].strip()
+        #         #check if line is empty
+        #         if line == '':
+        #             continue
+        #         key = line.split(':')[0].strip()
+        #         value = line.split(':')[1].strip()  
+        #         test_result[key] = value
+        if SERIAL_NUMBER == "NA":
+            #SERIAL_NUMBER = test_result['serial_number']
+            RUN_NUMBER = log_file.split('\\')[-1].split('_')[1]
     else:
         test_result = test_result_default.copy() # set test_result to default
 
@@ -262,11 +331,13 @@ def plot(channel=CHANNEL):
     # Get channel names from Row 3 of log file
     with open(log_file, 'r') as file:
         lines = file.readlines()
-        if new_log_file:
-            channel_names_raw = lines[49].strip()
-        else:
-            channel_names_raw = lines[2].strip()
-    CHANNEL_NAMES = (str(channel_names_raw.split(':')[1]).strip().lower()).split(',')
+        # if new_log_file:
+        #     channel_names_raw = lines[49].strip()
+        # else:
+        #     channel_names_raw = lines[2].strip()
+        # find index of line that starts with Colors:
+        channel_index = [i for i, line in enumerate(lines) if line.startswith('Colors:')][0]
+    CHANNEL_NAMES = (str(lines[channel_index].strip().split(':')[1]).strip().lower()).split(',')
 
     # plot the data
     fig = plt.figure(figsize=(6.5, 5), dpi=100)
@@ -312,17 +383,17 @@ def plot(channel=CHANNEL):
                 if x == start_rise_time:
                     start_rise_pressure = float(y)
                 if y == start_vent_pressure:
-                    start_vent_time_pressure = float(x)
+                    start_vent_time_pressure = int(x)
                 if y == stop_vent_pressure:
-                    stop_vent_time_pressure = float(x)
+                    stop_vent_time_pressure = int(x)
                 if y == start_decay:
-                    start_decay_time = float(x)
+                    start_decay_time = int(x)
                 if y == stop_decay:
-                    stop_decay_time = float(x)
+                    stop_decay_time = int(x)
                 if y == start_vent:
-                    start_vent_time = float(x)
+                    start_vent_time = int(x)
                 if y == stop_vent:
-                    stop_vent_time = float(x)
+                    stop_vent_time = int(x)
             if TEST_TYPE == 'Pressure' and toggle_annotation:
                 # annotate the values in (x,y) format
                 texts.append(plt.text(start_rise_time, start_rise_pressure, f"start_rise\n({start_rise_time},{round(start_rise_pressure,1)})", fontsize=8))
@@ -415,7 +486,7 @@ def right_selection_GUI():
     lbl_run_number = tk.Label(master=frm_selection, text="Run Number:", width=13, font=("Arial", 16), bg="light grey")
 
     if source_path != "":
-        if test_result['test_result']:
+        if test_result['Mech2TestPrimingPressure']:
             lbl_test_result = tk.Label(master=frm_selection, text="Pass", bg="light green", width=9, font=("Arial", 16))
         else:
             lbl_test_result = tk.Label(master=frm_selection, text="Fail", bg="light coral", width=9, font=("Arial", 16))
