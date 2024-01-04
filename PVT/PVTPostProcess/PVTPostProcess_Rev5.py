@@ -8,6 +8,7 @@ import glob
 import os
 import sys
 from adjustText import adjust_text
+from PIL import Image,ImageTk
 
 # Global variables
 TEST_TYPE = 'Decay' # Test type, can be 'Decay' or 'Pressure'
@@ -23,6 +24,8 @@ run_numbers_list = ["NA"]
 new_log_file = True
 info_label = None
 global btn_close
+lbl_img = None
+lbl_img1 = None
 toggle_annotation = True
 # Default test result, contains various parameters with default values
 test_result_default = {'SamplingHz': 'NA', 'Number Samples': 'NA', 'Mech2TestPrimingPressure': -1, 'sampling_rate': 'NA', 'maxP_magenta': 'NA', 'maxP_cyan': 'NA', 'maxP_yellow': 'NA', 'maxP_black': 'NA', 'maxP_within_range': -1,
@@ -443,6 +446,16 @@ def close_label():
     main_GUI()
 
 
+def close_annotations():
+    global lbl_img, lbl_img1, btn_close
+    # Destroy the annotations labels and the button
+    lbl_img.grid_forget()
+    lbl_img1.grid_forget()
+    btn_close.grid_forget()
+    # Restore the grid options
+    main_GUI()
+
+
 def about_info():
     global info_label, btn_close
     # Hide right_selection_GUI, test_result_GUI, bottom_bar_GUI
@@ -537,7 +550,10 @@ def test_result_GUI():
     index = 1
     result = ['maxP_magenta', 'maxP_cyan', 'maxP_yellow', 'maxP_black']
     for key in result:
-        value = round(float(test_result[key]), 2)
+        try:
+            value = round(float(test_result[key]), 2)
+        except:
+            value = test_result[key]
         lbl_max_pressure = tk.Label(master=frm_max_pressures, text=key.split('_')[1].capitalize(), font=("Arial", 16))
         lbl_max_pressure_value = tk.Label(master=frm_max_pressures, text=f"{value}", font=("Arial", 16), bg="white")
         lbl_max_pressure.grid(row=index, column=0, sticky="nw", pady=5)
@@ -556,7 +572,10 @@ def test_result_GUI():
     row_increment = 0
     result = ['pressure_vent_delay', 'pressure_vent_rate']
     for key in result:
-        value = round(float(test_result[key]), 2)
+        try:
+            value = round(float(test_result[key]), 2)
+        except:
+            value = test_result[key]
         background = 'light green'
         Upperbound = key+'_UL'
         Lowerbound = key+'_LL'
@@ -579,7 +598,10 @@ def test_result_GUI():
     row_increment = 0
     result = ['decay_rate', 'decay_vent_rate']
     for key in result:
-        value = round(float(test_result[key]), 2)
+        try:
+            value = round(float(test_result[key]), 2)
+        except:
+            value = test_result[key]
         background = 'light green'
         Upperbound = key+'_UL'
         Lowerbound = key+'_LL'
@@ -618,11 +640,34 @@ def bottom_bar_GUI():
     frm_bottom_bar.grid(row=3, column=1, sticky="nw", columnspan=2)
 
 
+def show_annotations():
+    global btn_close, lbl_img, lbl_img1
+    # Hide right_selection_GUI, test_result_GUI, bottom_bar_GUI
+    for widget in root.winfo_children():
+        widget.grid_forget()    
+
+    root.columnconfigure(1, minsize=535, weight=1)
+    # display picture in tk
+    img = ImageTk.PhotoImage(Image.open("DecayTestAnnotations_orig.png").resize((533,390)))
+    lbl_img = tk.Label(image=img)
+    lbl_img.image = img
+    lbl_img.grid(row=1, column=1, sticky="nw", padx=5, pady=5)
+
+    img1 = ImageTk.PhotoImage(Image.open("PressureTestAnnotations_orig.png").resize((533,390)))
+    lbl_img1 = tk.Label(image=img1)
+    lbl_img1.image = img1
+    lbl_img1.grid(row=2, column=1, sticky="nw", padx=5, pady=5)
+
+    btn_close = tk.Button(master=root, text="Close", font=("Arial", 16))
+    btn_close.config(command=close_annotations)
+    btn_close.grid(row=2, column=2, sticky="ws", padx=10, pady=10)
+
 def menu_bar_GUI():
     menu_f = tk.Menu(menubar,tearoff=0) # file menu
     menu_f.add_command(label="Open",command=select_directory)
     menu_h = tk.Menu(menubar,tearoff=0) # help menu
     menu_h.add_command(label="About", command=about_info)
+    menu_h.add_command(label="Annotations", command=show_annotations)
 
     #edit this select_directory command
     menubar.add_cascade(label="File", menu=menu_f) # Top Line
