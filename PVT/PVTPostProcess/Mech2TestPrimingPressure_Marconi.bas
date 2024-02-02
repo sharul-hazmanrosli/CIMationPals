@@ -1672,7 +1672,7 @@ Sub LogPressures(Test$, Pressures(,) As Double)
     Try
         sErrLine = CallersLine(-1)
         Dt = Format(Now,"yyyy_MM_dd_HH_mm_ss")
-        sFileName = RunTime.SerialNumber + "_" + Str(RunTime.RunNumber) + "_" + Dt + "_" + Test + ".log"
+        sFileName = RunTime.ProjectName + "_" + RunTime.StationNumber + "_" + RunTime.SerialNumber + Trim(RunTime.RunNumber) + "_"  + Dt + "_" + Test + ".log"
 
         sErrLine = CallersLine(-1)
         SavePath = RunTime.ProjectPath & "\Results\" & RunTime.TestName & "\" & sFileName
@@ -2586,27 +2586,23 @@ Function GenerateGraph() As String
 
         Display.ShowStatus "Executing PVTPostProcess.exe"
         sErrLine = CallersLine(-1)
-        Dim process As New process()
-        process.StartInfo.UseShellExecute = False
-        process.StartInfo.CreateNoWindow = True
+        Dim p As Process
+        p = New Process()
+        p.StartInfo.UseShellExecute = False
+        p.StartInfo.CreateNoWindow = True
+        p.StartInfo.FileName = RunTime.ProjectPath + "\\Utilities\\PVTPostProcess\\dist\\PVTPostProcess_Rev5\\PVTPostProcess_Rev5.exe"
+        p.StartInfo.Arguments = $"""{sourceDirectory}"" ""{destinationDirectory}"""
 
-        process.StartInfo.FileName = RunTime.ProjectPath & "\Utilities\PVTPostProcess\PVTPostProcess_Rev4.exe"
-        process.StartInfo.Arguments = $"""{sourceDirectory}"" ""{destinationDirectory}"""   'Pass the variable as a command-line argument
         Display.Text = "Graph is now being generated."
         sErrLine = CallersLine(-1)
-        process.Start()
-        Wait 3
-
-        'Display.Text = sError
-        'process.WaitForExit        'currently not robust, cimation hangs once process starts and wait
-        'process.Close
+        p.Start()
+        sErrLine = CallersLine(-1)
+        p.WaitForExit()
+        p.Close
 
         Dim sGraphResult As Integer
         sGraphResult = GUIUtil.DisplayPassFailRetry("Is the graph acceptable?",DisplayPanelType.Default,False)
         ' 0 - Pass; 1 = Retry; 2 = Fail
-
-        'Retry to show failure msg
-        'TEST PARMS TO RUN GUI OR NOT
 
         sErrLine = CallersLine(-1)
         If sGraphResult = 0 Then
