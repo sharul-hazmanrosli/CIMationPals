@@ -47,13 +47,10 @@ root.geometry("890x740") # set window size
 root.resizable(False,False) # fix window drag size
 menubar = tk.Menu(root) # Create a new menu bar
 root.config(menu=menubar) # Configure the root window to use the created menu bar
-
-
 def exit_button_press():        # function to properly close if executed from CIMation
     current_pid = os.getpid()   # Kill through the program's process ID
     os.kill(current_pid, 9)     # 9 corresponds to the SIGKILL signal
 root.protocol("WM_DELETE_WINDOW", exit_button_press)
-
 
 tab_style = ttk.Style() # Creaet tab style
 tab_style.theme_use('winnative') #winnative(abit white and pop out tab)
@@ -109,6 +106,10 @@ def select_directory():
             main_GUI()
     except Exception as e:
         print(f"An error occurred: {e}")
+
+
+def exit_button_press():
+    root.destroy()
 
 
 def update_serial_numbers_list():
