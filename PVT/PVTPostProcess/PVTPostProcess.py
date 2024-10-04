@@ -13,7 +13,7 @@ from PIL import Image,ImageTk
 import re
 
 # Global variables
-TEST_TYPE = 'Decay' # Test type, can be 'Decay' or 'Pressure'
+TEST_TYPE = 'Pressure' # Test type, can be 'Decay' or 'Pressure'
 CHANNEL = 'all'
 CHANNEL_NAMES = ["magenta", "cyan", "yellow", "k (black)"]
 SERIAL_NUMBER = "NA"
@@ -48,7 +48,6 @@ root.resizable(False,False) # fix window drag size
 menubar = tk.Menu(root) # Create a new menu bar
 root.config(menu=menubar) # Configure the root window to use the created menu bar
 
-
 def exit_button_press():        # function to properly close if executed from CIMation
     current_pid = os.getpid()   # Kill through the program's process ID
     os.kill(current_pid, 9)     # 9 corresponds to the SIGKILL signal
@@ -64,6 +63,9 @@ tab_control = ttk.Notebook(root)
 home_tab = ttk.Frame(tab_control) 
 help_tab = ttk.Frame(tab_control)
 current_tab = ttk.Frame()
+
+# create empty tkinter canvas
+canvas = FigureCanvasTkAgg()
 
 # set minsize and weight for each row and column for home_tab
 home_tab.rowconfigure(0,minsize=10,weight=1)
@@ -97,7 +99,7 @@ def configure_grid(widget):
 
 def select_directory():
     try:
-        global source_path,SERIAL_NUMBER,RUN_NUMBER,SERIAL_NUMBER_COMP,RUN_NUMBER_COMP,STATION_NUMBER_COMP
+        global source_path,SERIAL_NUMBER,RUN_NUMBER,SERIAL_NUMBER_COMP,RUN_NUMBER_COMP,STATION_NUMBER_COMP, log_file,CHANNEL
         directory = filedialog.askdirectory(title=f"Select Source Directory")
         if directory != "":  # if user click cancel, directory will be empty string
             new_source_path = directory.replace('/', '\\')
@@ -106,6 +108,8 @@ def select_directory():
                 # reset SERIAL NUMBER and RUN NUMBER to NA
                 SERIAL_NUMBER = "NA"
                 RUN_NUMBER = "NA"
+                log_file = ""
+                CHANNEL = 'all'
             main_GUI()
     except Exception as e:
         print(f"An error occurred: {e}")
@@ -139,7 +143,7 @@ def update_run_numbers_list():
         global run_numbers_list, SERIAL_NUMBER, new_log_file
         # from source_path, filter all the files start with serial_number
         files = os.listdir(source_path)
-        files = [file for file in files if SERIAL_NUMBER in file]
+        files = [file for file in files if SERIAL_NUMBER in file and file.endswith(".log")]
         # check if files list is not empty to avoid IndexError
         if files:
             run_numbers_list = []
@@ -230,6 +234,7 @@ def on_option_selected(*args): # *args is a tuple, args[0] is the selected_optio
         plot(CHANNEL)
     else: # if channel is selected
         plot(args[0].get())
+    bottom_bar_GUI()
 
 
 def on_tab_change(event):
@@ -272,9 +277,12 @@ def extract_test_result(test_type):
     pressure_test_file = ""
     decay_test_file = ""
     if SERIAL_NUMBER == "NA" and RUN_NUMBER == "NA":  # first time load log_file
-        # get latest results from both pressure and decay test
-        pressure_test_file = obtain_latest_file('pressure')
-        decay_test_file = obtain_latest_file('decay')
+        try:
+            # get latest results from both pressure and decay test
+            pressure_test_file = obtain_latest_file('pressure')
+            decay_test_file = obtain_latest_file('decay')
+        except Exception as e:
+            print(f"An error occurred: {e} in extract_test_result")
     else:
         if RUN_NUMBER == "NA":
             # get latest result for that serial number
@@ -343,9 +351,12 @@ def load_log_file(test_type):
         if test_type == "":
             test_type = TEST_TYPE
         # extract test_result from log_file
-        log_file = extract_test_result(test_type)    
+        log_file = extract_test_result(test_type)
+        # check if no log_file is found
+        if log_file == "":
+            return    
         # check if log_file is logging test result
-        if len(log_file.split('\\')[-1].split('_')) < 9:
+        elif len(log_file.split('\\')[-1].split('_')) < 9:
             new_log_file = False
         else:
             new_log_file = True
@@ -356,15 +367,16 @@ def load_log_file(test_type):
         else:
             test_result = test_result_default.copy() # set test_result to default
             SERIAL_NUMBER = log_file.split('\\')[-1].split('_')[0]
-
     except IndexError:
         print("Error: Unable to split log file name.")
+        log_file = ""
     except Exception as e:
         print(f"An error occurred: {e}")
+        log_file = ""
 
 
 def plot(channel):
-    global log_file,TEST_TYPE, CHANNEL
+    global log_file,TEST_TYPE, CHANNEL, canvas
     if channel == "":
         channel = CHANNEL    
     texts = []
@@ -467,9 +479,10 @@ def plot(channel):
     # update the global variable CHANNEL
     CHANNEL = channel
 
-    # button to toggle annotation   
-    btn_toggle = tk.Button(master=home_tab, text="Toggle Annotation", font = ("Arial",12), command=on_toggle_annotation_click)
-    btn_toggle.grid(row=1, column=1, sticky="en", padx=5, pady=5)
+    # button to toggle annotation, only show if log_file is not empty
+    if log_file != "":
+        btn_toggle = tk.Button(master=home_tab, text="Toggle Annotation", font = ("Arial",12), command=on_toggle_annotation_click)
+        btn_toggle.grid(row=1, column=1, sticky="en", padx=5, pady=5)
 
 
 def on_toggle_annotation_click():
@@ -506,7 +519,7 @@ def right_selection_GUI():
     create_label(frm_selection, "Serial Number:", 6, 0, "w", "font_14",13, (5,5), "light grey")
     create_label(frm_selection, "Run Number:", 8, 0, "w", "font_14",13, (5,5), "light grey")
 
-    if source_path != "":
+    if source_path != "" and test_result["Mech2TestPrimingPressure"] != -1:
         if new_log_file:
             if test_result['Mech2TestPrimingPressure'] == 'True':
                 text = "Pass"
@@ -514,6 +527,7 @@ def right_selection_GUI():
             else:
                 text = "Fail"
                 background = "light coral"
+                test_result["Mech2TestPrimingPressure"] = False
             create_label(frm_selection, text, 0, 0, "w", "font_14",9, (5,5), background)
         else:
             create_label(frm_selection, "", 0, 0, "w", "font_14",9, (5,5))  
@@ -533,7 +547,7 @@ def right_selection_GUI():
     dropdown_menu("home_tab", "Serial Number", serial_numbers_list, frm_selection, 7, 0, on_serial_number_selected)
     dropdown_menu("home_tab", "Run Number", run_numbers_list, frm_selection, 9, 0, on_run_number_selected)
     configure_grid(frm_selection)
-    
+
     frm_exit = tk.Frame(master=home_tab, borderwidth=2)
     # Insert empty lbl before btn_exit
     create_label(frm_exit, "", 0, 0, "nsew", "font_16",8, (5,0), height=5)
@@ -598,9 +612,10 @@ def test_result_GUI():
         index += 1
 
     if test_result['maxP_within_range'] == '1':
-        create_label(frm_max_pressures, "Pass", 5, 0, "nw", "font_16",15, (5,5), bg="light green", columnspan= 2)
+        create_label(frm_max_pressures, "maxP within range", 5, 0, "nw", "font_16",15, (5,5), bg="light green", columnspan= 2)
     elif test_result['maxP_within_range'] == '0':
-        create_label(frm_max_pressures, "Fail", 5, 0, "nw", "font_16",15, (5,5), bg="light coral", columnspan= 2)
+        create_label(frm_max_pressures, "maxP outside range", 5, 0, "nw", "font_16",15, (5,5), bg="light coral", columnspan= 2)
+        test_result["Mech2TestPrimingPressure"] = False
     else:
         create_label(frm_max_pressures, "NA", 5, 0, "nw", "font_16",15, (5,5), bg="light grey", columnspan= 2)
 
@@ -619,6 +634,8 @@ def test_result_GUI():
         if Upperbound in test_result and Lowerbound in test_result:
             try:
                 background = "light grey" if test_result[Upperbound] == 'NA' else "light green" if float(test_result[Lowerbound]) <= float(test_result[key]) <= float(test_result[Upperbound]) else "light coral"
+                if background == "light coral":
+                    test_result["Mech2TestPrimingPressure"] = False
             except Exception as e:
                 background = "light grey"
         # extract the string vent_delay or vent_rate from the key
@@ -641,7 +658,13 @@ def test_result_GUI():
         # if temp is in test_result
         if Upperbound in test_result and Lowerbound in test_result:
             try:
-                background = "light grey" if test_result[Upperbound] == 'NA' else "light green" if float(test_result[Lowerbound]) <= float(test_result[key]) <= float(test_result[Upperbound]) else "light coral"
+                if test_result[Upperbound] == 'NA':
+                    background = "light grey"
+                elif float(test_result[Lowerbound]) <= float(test_result[key]) <= float(test_result[Upperbound]):
+                    background = "light green" 
+                else:
+                    background = "light coral"
+                    test_result["Mech2TestPrimingPressure"] = False
             except Exception as e:
                 background = "light grey"
         create_label(frm_decay_test_result, "Decay Rate" if key == 'decay_rate' else "Vent Rate", 2+row_increment, 0, "nw", "font_16",15, (5,3))
@@ -656,6 +679,7 @@ def test_result_GUI():
 
 
 def bottom_bar_GUI():
+    global log_file
     if source_path == "":
         return
     # Erase bottom_bar before creating new label
@@ -663,10 +687,11 @@ def bottom_bar_GUI():
         if int(widget.grid_info()["row"]) == 3 and int(widget.grid_info()["column"]) == 1:
             widget.destroy()
     # bottom bar to show the log file name
-    frm_bottom_bar = tk.Frame(master=home_tab, borderwidth=2)
-    filename = log_file.split('\\')[-1]
-    create_label(frm_bottom_bar, f"Log File:{filename}", 0, 0, "nw", "font_13", padding=(5,5))
-    frm_bottom_bar.grid(row=3, column=1, sticky="nw", columnspan=2) #change bottom bar to show in row 0 from row 3
+    if log_file != "":
+        frm_bottom_bar = tk.Frame(master=home_tab, borderwidth=2)
+        filename = log_file.split('\\')[-1]
+        create_label(frm_bottom_bar, f"Log File:{filename}", 0, 0, "nw", "font_13", padding=(5,5))
+        frm_bottom_bar.grid(row=3, column=1, sticky="nw", columnspan=2) #change bottom bar to show in row 0 from row 3
 
 
 def show_help(input):
@@ -686,6 +711,11 @@ def show_profile(test_type='Decay'):
     lbl_img = tk.Label(master=help_tab, image=img) 
     lbl_img.image = img
     lbl_img.grid(row=0, column=1, sticky="sw")
+
+def clear_chart():
+    global canvas
+    canvas.get_tk_widget().delete("all")
+
 
 def menu_bar_GUI():
     menu_f = tk.Menu(menubar,tearoff=0) # file menu
@@ -710,19 +740,25 @@ def tab_control_GUI():
     tab_control.bind("<<NotebookTabChanged>>", on_tab_change)
 
 def main_GUI():
+    global test_result, canvas
     if source_path != '':
-        load_log_file(TEST_TYPE) # load log_file, default is decay test
-        plot(CHANNEL) # plot the graph
-        update_serial_numbers_list()  # get the unique serial numbers from the source_path
-        update_run_numbers_list()  # get the run numbers from the source_path
+        load_log_file(TEST_TYPE) # load log_file, default is pressure test
+        if log_file != "":
+            plot(CHANNEL) # plot the graph
+            update_serial_numbers_list()  # get the unique serial numbers from the source_path
+            update_run_numbers_list()  # get the run numbers from the source_path
+        else:
+            test_result = test_result_default.copy()
+            clear_chart()
+            create_label(home_tab, "     Selected log file does not exist!!", 1, 1, "nw", "font_16", padding=(5,5), fg="red", height= 2, width=53)
     else:
         # add label ask user to click file button and select source directory
         create_label(home_tab, "     Please click File and open a source directory", 1, 1, "nw", "font_16", padding=(5,5), fg="red")
 
     tab_control_GUI()
     left_padding_GUI()
-    right_selection_GUI()
     test_result_GUI()
+    right_selection_GUI()
     bottom_bar_GUI()
     
     configure_grid(home_tab)
